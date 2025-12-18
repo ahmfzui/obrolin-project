@@ -1,0 +1,67 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: obrolin-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: obrolin_memory
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: obrolin-api
+    depends_on:
+      - postgres
+    environment:
+      # Core keys (fill via .env)
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
+      LANGSMITH_ENDPOINT: ${LANGSMITH_ENDPOINT}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY}
+      LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-obrolin_chat}
+      # DB (point to docker service dns)
+      MEMORY_DB_URL: ${MEMORY_DB_URL:-postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/obrolin_memory}
+      # Qdrant (remote)
+      QDRANT_URL: ${QDRANT_URL}
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-knowledge_base_openai}
+      # Embedding config
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-large}
+      EMBEDDING_DIMENSION: ${EMBEDDING_DIMENSION:-3072}
+      CHUNK_SIZE: ${CHUNK_SIZE:-1024}
+      CHUNK_OVERLAP: ${CHUNK_OVERLAP:-200}
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    container_name: obrolin-ui
+    depends_on:
+      - postgres
+      - api
+    environment:
+      # Prisma DB for website
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/db_website?schema=public}
+      # RAG API URL (internal dns or host port)
+      RAG_API_URL: ${RAG_API_URL:-http://api:5000}
+      # NextAuth
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+volumes:
+  db-data:

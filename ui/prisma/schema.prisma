@@ -1,0 +1,38 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  // --- INI DIRUBAH ---
+  id       Int      @id @default(autoincrement()) // Sebelumnya: User_id
+  // -----------------
+
+  Name     String?
+  Email    String   @unique
+  Password String
+  Role     String
+  chats    Chat[]
+}
+
+model Chat {
+  Chat_id    Int      @id @default(autoincrement())
+  Category   String
+  Question   String
+  Answer     String
+  conversation_id String?
+  created_at DateTime @default(now())
+  Feedback   Int?
+
+
+  // --- DAN INI DIRUBAH (RELASINYA) ---
+  userId Int // Sebelumnya: User_id
+  user   User    @relation(fields: [userId], references: [id]) // Sebelumnya: ...fields: [User_id], references: [User_id]
+  // ----------------------------------
+}

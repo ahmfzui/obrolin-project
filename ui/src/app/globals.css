@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+/* Manual dark mode via .dark class on <html> */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+/* Smooth color transitions */
+body {
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+/* Note: prefer Tailwind's `dark:` variants on components for predictable
+   dark-mode styling. Avoid overriding utility classes globally here so
+   component-level `bg-white dark:bg-...` works as intended. */
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
