@@ -49,6 +49,8 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const streamBufferRef = useRef<string>('');
+  const lastUpdateRef = useRef<number>(0);
 
   // NOTE: we no longer auto-create a RAG conversation on mount. Creating
   // the lightweight DB row (and RAG conversation) is deferred until the
@@ -240,21 +242,38 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
                 });
               } else if (data.stage === 'streaming') {
                 setProgressStatus(null);
-                setMessages(current => {
-                  const updated = [...current];
-                  const lastMsg = updated[updated.length - 1];
-                  if (lastMsg && !lastMsg.isUser) {
-                    lastMsg.text += data.content;
-                  }
-                  return updated;
-                });
+                
+                // Accumulate content in buffer
+                streamBufferRef.current += data.content;
+                
+                // Throttle UI updates to every 50ms for smooth rendering
+                const now = Date.now();
+                if (now - lastUpdateRef.current >= 50) {
+                  lastUpdateRef.current = now;
+                  const bufferedContent = streamBufferRef.current;
+                  
+                  setMessages(current => {
+                    const updated = [...current];
+                    const lastMsg = updated[updated.length - 1];
+                    if (lastMsg && !lastMsg.isUser && lastMsg.isStreaming) {
+                      lastMsg.text = bufferedContent;
+                    }
+                    return updated;
+                  });
+                }
               } else if (data.stage === 'complete') {
                 setProgressStatus(null);
+                
+                // Reset buffer and ensure final text is set
+                const finalText = data.full_content || streamBufferRef.current;
+                streamBufferRef.current = '';
+                lastUpdateRef.current = 0;
+                
                 setMessages(current => {
                   const updated = [...current];
                   const lastMsg = updated[updated.length - 1];
                   if (lastMsg && !lastMsg.isUser) {
-                    lastMsg.text = data.full_content;
+                    lastMsg.text = finalText;
                     lastMsg.isStreaming = false;
                   }
                   return updated;
@@ -279,12 +298,16 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
     } catch (err: any) {
       if (err.name === 'AbortError') {
         console.log('Request aborted');
+        streamBufferRef.current = '';
+        lastUpdateRef.current = 0;
         return;
       }
 
       console.error('Submit error:', err);
       setError(err.message);
       setProgressStatus(null);
+      streamBufferRef.current = '';
+      lastUpdateRef.current = 0;
 
       const errorMessage: Message = {
         id: crypto.randomUUID(),

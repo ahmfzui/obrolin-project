@@ -46,8 +46,8 @@ export async function POST(req: NextRequest) {
       convId = createData.conversation_id;
     }
 
-    // Forward to FastAPI chat endpoint (non-streaming)
-    const response = await fetch(`${RAG_API_URL}/conversations/chat/`, {
+    // Forward to FastAPI chat endpoint (streaming)
+    const response = await fetch(`${RAG_API_URL}/conversations/chat-stream/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -65,66 +65,60 @@ export async function POST(req: NextRequest) {
       return new Response(JSON.stringify({ error: 'Failed to call backend chat' }), { status: response.status, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const data = await response.json();
-    const fullText = data.response ?? '';
+    // Prepare for DB update
+    const userId = session?.user?.id ? parseInt(session.user.id) : null;
 
-    // Persist the QA into our DB so the sidebar/history shows the content.
-    try {
-      const session = await getServerSession(authOptions) as any;
-      const userId = session?.user?.id ? parseInt(session.user.id) : null;
-      if (userId) {
-        // attempt to find existing lightweight row created at start
-        const existing = await db.chat.findFirst({ where: { conversation_id: convId, userId } } as any);
-        if (existing) {
-          await db.chat.update({ where: { Chat_id: existing.Chat_id }, data: { Category: category, Question: question, Answer: fullText } as any });
-        } else {
-          await db.chat.create({ data: { userId, Category: category, Question: question, Answer: fullText, conversation_id: convId } as any });
-        }
-      }
-    } catch (dbErr: any) {
-      console.warn('[STREAM_ROUTE] Failed to persist chat to DB (non-fatal):', dbErr?.message || dbErr);
-    }
+    const decoder = new TextDecoder();
+    let accumulatedAnswer = '';
 
-    // Convert non-streaming response into SSE stream expected by client
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      start(controller) {
-        // send initial thinking stage
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ stage: 'thinking', message: 'Processing...' })}\n\n`));
-
-        // small pause before streaming content
-        // then stream in chunks
-        const chunkSize = 64; // characters per chunk
-        let sent = 0;
-
-        function sendNextChunk() {
-          if (sent >= fullText.length) {
-            // complete
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ stage: 'complete', full_content: fullText })}\n\n`));
-            controller.close();
-            return;
+    const transformStream = new TransformStream({
+      async transform(chunk, controller) {
+        controller.enqueue(chunk);
+        const text = decoder.decode(chunk, { stream: true });
+        const lines = text.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const jsonStr = line.slice(6);
+              const data = JSON.parse(jsonStr);
+              if (data.stage === 'complete' && data.full_content) {
+                accumulatedAnswer = data.full_content;
+              }
+            } catch (e) {
+              // ignore
+            }
           }
-
-          const chunk = fullText.slice(sent, sent + chunkSize);
-          sent += chunk.length;
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ stage: 'streaming', content: chunk })}\n\n`));
-
-          // schedule next chunk
-          setTimeout(sendNextChunk, 30);
         }
-
-        // small delay then start streaming
-        setTimeout(sendNextChunk, 50);
+      },
+      async flush(controller) {
+        if (userId && accumulatedAnswer) {
+          try {
+            const existing = await db.chat.findFirst({ where: { conversation_id: convId, userId } } as any);
+            if (existing) {
+              await db.chat.update({ 
+                where: { Chat_id: existing.Chat_id }, 
+                data: { Category: category, Question: question, Answer: accumulatedAnswer } as any
+              });
+            } else {
+              await db.chat.create({ 
+                data: { userId, Category: category, Question: question, Answer: accumulatedAnswer, conversation_id: convId } as any
+              });
+            }
+          } catch (err) {
+            console.error('Failed to save chat history:', err);
+          }
+        }
       }
     });
 
-    return new Response(stream, {
+    return new Response(response.body?.pipeThrough(transformStream), {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
+        'Connection': 'keep-alive',
       },
     });
+
 
   } catch (error: any) {
     console.error('Stream proxy error:', error);

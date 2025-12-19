@@ -9,6 +9,7 @@ from langgraph.prebuilt import ToolNode
 import os
 from dotenv import load_dotenv
 from langgraph.checkpoint.postgres import PostgresSaver
+import asyncio
 from psycopg import Connection
 from langchain_core.messages.utils import (
     trim_messages,
@@ -25,8 +26,38 @@ connection_kwargs = {
     "prepare_threshold": 0,
 }
 
+class AsyncPostgresSaverWrapper(PostgresSaver):
+    """Thin async wrapper over PostgresSaver using thread offload for blocking calls.
+
+    This avoids NotImplementedError when LangGraph requests async checkpoint APIs
+    (aget_tuple / aput_tuple / aput / aget / alist / aclear) while we still use a sync psycopg
+    connection under the hood.
+    """
+
+    async def aget_tuple(self, config):
+        return await asyncio.to_thread(self.get_tuple, config)
+
+    async def aput_tuple(self, config, value):
+        return await asyncio.to_thread(self.put_tuple, config, value)
+
+    async def aput(self, config, checkpoint, metadata, new_versions):
+        return await asyncio.to_thread(self.put, config, checkpoint, metadata, new_versions)
+
+    async def aget(self, config):
+        return await asyncio.to_thread(self.get, config)
+
+    async def aput_writes(self, config, writes, task_id):
+        return await asyncio.to_thread(self.put_writes, config, writes, task_id)
+
+    async def alist(self, *args, **kwargs):
+        return await asyncio.to_thread(self.list, *args, **kwargs)
+
+    async def aclear(self, *args, **kwargs):
+        return await asyncio.to_thread(self.clear, *args, **kwargs)
+
+
 conn = Connection.connect(DB_URI, **connection_kwargs)
-checkpointer = PostgresSaver(conn)
+checkpointer = AsyncPostgresSaverWrapper(conn)
 
 class GraphState(TypedDict):
     user_prompt: str
@@ -50,7 +81,7 @@ class MainAgentGraph :
         self.main_llm = ChatOpenAI(model_name = 'gpt-4.1-mini').bind_tools(tools)
         self.graph = self._build_graph()
 
-    def main_agent(self, state: MainState) -> str : 
+    async def main_agent(self, state: MainState) -> str : 
         messages = state.get("messages")
         category = state.get("category")
         
@@ -71,7 +102,7 @@ class MainAgentGraph :
             include_system=True
         )
         
-        response = self.main_llm.invoke(trimmed_messages)
+        response = await self.main_llm.ainvoke(trimmed_messages)
         
         return {
             'messages': response

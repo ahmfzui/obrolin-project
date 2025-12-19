@@ -256,38 +256,72 @@ async def chat_stream(input_payload: UserMessage):
     
     async def generate_stream():
         try:
-            # Stage 1: Thinking
+            from langchain_core.messages import HumanMessage, SystemMessage
+            
+            # Stage 1: Thinking (Immediate feedback)
             yield f"data: {json.dumps({'stage': 'thinking', 'message': 'Berpikir...', 'icon': '🤔'})}\n\n"
-            await asyncio.sleep(0.5)
             
-            # Stage 2: Searching
-            yield f"data: {json.dumps({'stage': 'searching', 'message': 'Mencari informasi...', 'icon': '🔍'})}\n\n"
-            await asyncio.sleep(0.5)
+            # Prepare state
+            state = graph.get_state(config={"configurable": {"thread_id": thread_id}})
             
-            # Stage 3: Analyzing
-            yield f"data: {json.dumps({'stage': 'analyzing', 'message': 'Menganalisis data...', 'icon': '📊'})}\n\n"
-            await asyncio.sleep(0.5)
+            messages = []
+            if len(state.values) == 0:
+                messages.append(SystemMessage(content=main_agent.system_prompt))
             
-            # Stage 4: Generating
-            yield f"data: {json.dumps({'stage': 'generating', 'message': 'Menyusun jawaban...', 'icon': '✍️'})}\n\n"
+            messages.append(HumanMessage(content=input_payload.content))
             
-            # Get actual response
-            response_content = send_message_to_agent(
-                input_payload.content, 
-                thread_id,
-                category=input_payload.category
-            )
+            invoke_state = {
+                "user_prompt": input_payload.content, 
+                "messages": messages
+            }
+            if input_payload.category:
+                invoke_state["category"] = input_payload.category
+
+            # Stream events from the graph
+            full_response = ""
+            async for event in graph.astream_events(
+                invoke_state,
+                config={"configurable": {"thread_id": thread_id}},
+                version="v1"
+            ):
+                kind = event["event"]
+                
+                # Tool execution (Searching/Retrieving)
+                if kind == "on_tool_start":
+                    yield f"data: {json.dumps({'stage': 'searching', 'message': 'Mencari informasi...', 'icon': '🔍'})}\n\n"
+                
+                # LLM Streaming (Token by token)
+                elif kind == "on_chat_model_stream":
+                    chunk = event.get("data", {}).get("chunk")
+                    if not chunk:
+                        continue
+
+                    # Extract content - OpenAI streaming returns string content directly
+                    content_text = ""
+                    if hasattr(chunk, "content"):
+                        raw = chunk.content
+                        if isinstance(raw, str):
+                            content_text = raw
+                        elif isinstance(raw, list):
+                            # Rare: content as list of parts
+                            for part in raw:
+                                if isinstance(part, dict):
+                                    content_text += part.get("text", "")
+                                elif hasattr(part, "text"):
+                                    content_text += part.text
+
+                    # Only send if we have actual content
+                    if content_text:
+                        full_response += content_text
+                        yield f"data: {json.dumps({'stage': 'streaming', 'content': content_text})}\n\n"
+
+            # Update last activity
+            save_conversation_to_db(thread_id)
             
-            # Stream response word by word
-            words = response_content.split(' ')
-            for i, word in enumerate(words):
-                yield f"data: {json.dumps({'stage': 'streaming', 'content': word + ' ', 'progress': int((i + 1) / len(words) * 100)})}\n\n"
-                await asyncio.sleep(0.03)
-            
-            # Final stage
-            yield f"data: {json.dumps({'stage': 'complete', 'message': 'Selesai!', 'icon': '✅', 'full_content': response_content})}\n\n"
+            yield f"data: {json.dumps({'stage': 'complete', 'message': 'Selesai!', 'icon': '✅', 'full_content': full_response})}\n\n"
             
         except Exception as e:
+            logger.error("Streaming error", exc_info=True)
             yield f"data: {json.dumps({'stage': 'error', 'message': str(e), 'icon': '❌'})}\n\n"
     
     return StreamingResponse(
