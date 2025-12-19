@@ -98,35 +98,29 @@ export default function ChatSidebar({
     setFilteredHistory(filtered);
   };
 
-  const groupChatsByDate = (chats: ChatHistoryItem[]) => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const weekAgo = new Date(today);
-    weekAgo.setDate(weekAgo.getDate() - 7);
+  const handleDeleteChat = async (e: React.MouseEvent, chat: ChatHistoryItem) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this chat?')) return;
 
-    const groups: { [key: string]: ChatHistoryItem[] } = {
-      today: [],
-      yesterday: [],
-      week: [],
-      older: [],
-    };
+    try {
+      const res = await fetch('/api/chat/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          chat_id: chat.Chat_id,
+          conversation_id: chat.conversation_id 
+        }),
+      });
 
-    chats.forEach(chat => {
-      const chatDate = new Date(chat.created_at);
-      
-      if (chatDate.toDateString() === today.toDateString()) {
-        groups.today.push(chat);
-      } else if (chatDate.toDateString() === yesterday.toDateString()) {
-        groups.yesterday.push(chat);
-      } else if (chatDate >= weekAgo) {
-        groups.week.push(chat);
+      if (res.ok) {
+        setHistory(prev => prev.filter(c => c.Chat_id !== chat.Chat_id));
       } else {
-        groups.older.push(chat);
+        alert('Failed to delete chat');
       }
-    });
-
-    return groups;
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Error deleting chat');
+    }
   };
 
   const groupedChats = groupChatsByDate(filteredHistory);
@@ -184,23 +178,26 @@ export default function ChatSidebar({
           </svg>
         </div>
 
-        {/* Category Filters */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => {
-                setSelectedCategory(cat.id);
-              }}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
-                selectedCategory === cat.id
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md scale-105'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-cyan-300'
-              }`}
+        {/* Category Filters (Dropdown) */}
+        <div className="mb-4">
+          <div className="relative">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full appearance-none px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 cursor-pointer hover:border-cyan-300 transition-colors"
             >
-              {cat.name}
-            </button>
-          ))}
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
         </div>
 
         {/* Refresh Button */}
@@ -247,7 +244,7 @@ export default function ChatSidebar({
                 </h3>
                 <div className="space-y-2">
                   {groupedChats.today.map(chat => (
-                    <ChatItem key={chat.Chat_id} chat={chat} onSelect={onSelectChat} />
+                    <ChatItem key={chat.Chat_id} chat={chat} onSelect={onSelectChat} onDelete={(e) => handleDeleteChat(e, chat)} />
                   ))}
                 </div>
               </div>
@@ -261,7 +258,7 @@ export default function ChatSidebar({
                 </h3>
                 <div className="space-y-2">
                   {groupedChats.yesterday.map(chat => (
-                    <ChatItem key={chat.Chat_id} chat={chat} onSelect={onSelectChat} />
+                    <ChatItem key={chat.Chat_id} chat={chat} onSelect={onSelectChat} onDelete={(e) => handleDeleteChat(e, chat)} />
                   ))}
                 </div>
               </div>
@@ -275,7 +272,7 @@ export default function ChatSidebar({
                 </h3>
                 <div className="space-y-2">
                   {groupedChats.week.map(chat => (
-                    <ChatItem key={chat.Chat_id} chat={chat} onSelect={onSelectChat} />
+                    <ChatItem key={chat.Chat_id} chat={chat} onSelect={onSelectChat} onDelete={(e) => handleDeleteChat(e, chat)} />
                   ))}
                 </div>
               </div>
@@ -289,7 +286,7 @@ export default function ChatSidebar({
                 </h3>
                 <div className="space-y-2">
                   {groupedChats.older.map(chat => (
-                    <ChatItem key={chat.Chat_id} chat={chat} onSelect={onSelectChat} />
+                    <ChatItem key={chat.Chat_id} chat={chat} onSelect={onSelectChat} onDelete={(e) => handleDeleteChat(e, chat)} />
                   ))}
                 </div>
               </div>
@@ -301,21 +298,21 @@ export default function ChatSidebar({
       {/* Footer */}
       <div className="p-4 border-t border-gray-100 bg-gradient-to-r from-cyan-50/30 to-blue-50/30">
         <div className="text-xs font-semibold text-gray-600 text-center bg-white/80 py-2.5 rounded-lg border border-gray-100">
-          {filteredHistory.length} {filteredHistory.length === 1 ? 'chat' : 'chats'}
+          {filteredHistory.length} Room Chats
         </div>
       </div>
     </div>
   );
 }
 
-function ChatItem({ chat, onSelect }: { chat: ChatHistoryItem; onSelect?: (chat: ChatHistoryItem) => void }) {
+function ChatItem({ chat, onSelect, onDelete }: { chat: ChatHistoryItem; onSelect?: (chat: ChatHistoryItem) => void; onDelete?: (e: React.MouseEvent) => void }) {
   return (
     <button
       onClick={() => onSelect?.(chat)}
-      className="w-full text-left p-3 hover:bg-gradient-to-r hover:from-cyan-50/50 hover:to-blue-50/50 rounded-lg transition-all duration-200 group border border-gray-100 hover:border-cyan-300 bg-white shadow-sm hover:shadow-md transform hover:translate-x-1"
+      className="w-full text-left p-3 hover:bg-gradient-to-r hover:from-cyan-50/50 hover:to-blue-50/50 rounded-lg transition-all duration-200 group border border-gray-100 hover:border-cyan-300 bg-white shadow-sm hover:shadow-md transform hover:translate-x-1 relative"
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pr-6">
           <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-cyan-700 transition-colors">
             {chat.Question}
           </p>
@@ -332,6 +329,50 @@ function ChatItem({ chat, onSelect }: { chat: ChatHistoryItem; onSelect?: (chat:
           {chat.Category}
         </span>
       </div>
+      
+      {/* Delete Button */}
+      <div 
+        onClick={onDelete}
+        className="absolute top-2 right-2 p-1.5 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all duration-200"
+        title="Delete chat"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </div>
     </button>
   );
+}
+
+function groupChatsByDate(chats: ChatHistoryItem[]) {
+  const groups = {
+    today: [] as ChatHistoryItem[],
+    yesterday: [] as ChatHistoryItem[],
+    week: [] as ChatHistoryItem[],
+    older: [] as ChatHistoryItem[],
+  };
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const lastWeek = new Date(today);
+  lastWeek.setDate(lastWeek.getDate() - 7);
+
+  chats.forEach(chat => {
+    const date = new Date(chat.created_at);
+    const chatDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+    if (chatDate.getTime() === today.getTime()) {
+      groups.today.push(chat);
+    } else if (chatDate.getTime() === yesterday.getTime()) {
+      groups.yesterday.push(chat);
+    } else if (chatDate > lastWeek) {
+      groups.week.push(chat);
+    } else {
+      groups.older.push(chat);
+    }
+  });
+
+  return groups;
 }

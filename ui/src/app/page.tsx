@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import { getAuthSession } from '@/lib/auth-helper';
 import ModernNavbar from '@/components/ModernNavbar';
 
+import Image from 'next/image';
+
 // Server component: if authenticated -> /chat, otherwise show a landing page
 export default async function Home() {
   const session = await getAuthSession();
@@ -25,12 +27,15 @@ export default async function Home() {
               </span>
             </div>
             
-            <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight">
-              Obrolin
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-blue-600">
-                Chatbot Akademik
-              </span>
-            </h1>
+            <div className="relative w-full h-32 md:h-40 -ml-4">
+              <Image
+                src="https://i.ibb.co.com/zHhWc18h/Obrol-In.png"
+                alt="Obrolin Logo"
+                fill
+                className="object-contain object-left"
+                priority
+              />
+            </div>
             
             <p className="text-xl text-gray-600 leading-relaxed">
               Dapatkan jawaban cepat tentang pendaftaran, magang, program MBKM, dan panduan akademik kampus Anda. Berbicaralah dengan asisten cerdas yang paham aturan dan proses kampus.
@@ -57,30 +62,7 @@ export default async function Home() {
               </a>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 pt-6">
-              <div className="bg-white/80 backdrop-blur rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 bg-cyan-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                    </svg>
-                  </div>
-                  <h4 className="text-sm font-semibold text-gray-800">4 Kategori</h4>
-                </div>
-                <p className="text-sm text-gray-600">Capstone, KP, MBKM, Registrasi</p>
-              </div>
-              <div className="bg-white/80 backdrop-blur rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                  </div>
-                  <h4 className="text-sm font-semibold text-gray-800">Aman & Privat</h4>
-                </div>
-                <p className="text-sm text-gray-600">Data terenkripsi dengan RAG</p>
-              </div>
-            </div>
+
           </div>
 
           <div className="relative">

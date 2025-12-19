@@ -318,11 +318,12 @@ def get_conversation_history_endpoint(request: ConversationID):
                 "timestamp": get_current_datetime_string()
             })
         elif isinstance(message, AIMessage):
-            formatted_messages.append({
-                "type": "ai",
-                "content": message.content,
-                "timestamp": get_current_datetime_string()
-            })
+            if message.content:
+                formatted_messages.append({
+                    "type": "ai",
+                    "content": message.content,
+                    "timestamp": get_current_datetime_string()
+                })
     
     return HistoryResponse(
         conversation_id=request.conversation_id,

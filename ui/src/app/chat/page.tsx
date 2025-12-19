@@ -1,14 +1,32 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import ModernNavbar from '@/components/ModernNavbar';
 import ChatSidebar from '@/components/ChatSidebar';
 import ModernChatWindow from '@/components/ModernChatWindow';
 
 export default function ChatPage() {
+  const { status } = useSession();
+  const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedChat, setSelectedChat] = useState<any | null>(null);
   const chatWindowRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status, router]);
+
+  if (status === 'loading') {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
+
+  if (status === 'unauthenticated') {
+    return null; // Will redirect
+  }
 
   const handleNewChatClick = () => {
     // Trigger the handleNewChat function from ModernChatWindow

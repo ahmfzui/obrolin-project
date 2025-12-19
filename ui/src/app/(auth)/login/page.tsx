@@ -48,6 +48,10 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 via-white to-cyan-50 px-4">
       <div className="w-full max-w-md">
+        <Link href="/" className="flex items-center text-sm text-gray-600 hover:text-cyan-600 mb-4 transition-colors w-fit">
+          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+          Kembali ke Beranda
+        </Link>
         {/* Card */}
         <div className="rounded-2xl bg-white p-8 shadow-lg border border-gray-100">
           {/* Header */}

@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useSession } from 'next-auth/react';
 
+import Image from 'next/image';
+
 interface Message {
   id: string;
   text: string;
@@ -513,70 +515,51 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
                     <p className="text-sm text-gray-600 font-medium">Memuat...</p>
                   </div>
                 ) : (
-                <div className="space-y-8 max-w-3xl px-4">
-                  <div className="space-y-4">
-                    <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center mb-4 mx-auto shadow-2xl">
-                      <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                      </svg>
+                <div className="space-y-8 max-w-3xl px-4 w-full">
+                  <div className="space-y-4 text-center">
+                    <div className="relative w-64 h-32 mx-auto mb-4">
+                      <Image
+                        src="https://i.ibb.co.com/zHhWc18h/Obrol-In.png"
+                        alt="Obrolin Logo"
+                        fill
+                        className="object-contain"
+                        priority
+                      />
                     </div>
                     <h2 className="text-3xl font-bold text-gray-900">
-                      Glad you're here, {session?.user?.name || 'Guest'}
+                      Halo, {session?.user?.name || 'Guest'}! 👋
                     </h2>
                     <p className="text-gray-600 text-lg">
                       Pilih kategori di bawah dan mulai bertanya tentang info akademik kampusmu!
                     </p>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <button 
-                      onClick={() => setSelectedCategory('Capstone')}
-                      className="group bg-gradient-to-br from-cyan-50 to-blue-50 border-2 border-cyan-200/50 rounded-2xl p-5 text-left hover:shadow-lg hover:scale-105 transition-all cursor-pointer"
-                    >
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-md">
-                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <div className="max-w-md mx-auto">
+                    <label htmlFor="category-select" className="block text-sm font-medium text-gray-700 mb-2">
+                      Pilih Kategori Percakapan
+                    </label>
+                    <div className="relative">
+                      <select
+                        id="category-select"
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="block w-full pl-4 pr-10 py-4 text-base text-gray-900 border-gray-300 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm rounded-xl shadow-sm bg-white border-2 cursor-pointer appearance-none"
+                      >
+                        <option value="" disabled className="text-gray-500">-- Pilih Kategori --</option>
+                        <option value="Capstone" className="text-gray-900">Capstone Project</option>
+                        <option value="KP" className="text-gray-900">Kerja Praktik (KP)</option>
+                        <option value="MBKM" className="text-gray-900">Program MBKM</option>
+                        <option value="Registrasi MK" className="text-gray-900">Registrasi Mata Kuliah</option>
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </div>
-                      <h4 className="font-bold text-gray-900 text-base mb-1">Capstone Project</h4>
-                      <p className="text-sm text-gray-600">Info proyek akhir kamu</p>
-                    </button>
-                    <button 
-                      onClick={() => setSelectedCategory('KP')}
-                      className="group bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200/50 rounded-2xl p-5 text-left hover:shadow-lg hover:scale-105 transition-all cursor-pointer"
-                    >
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-md">
-                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <h4 className="font-bold text-gray-900 text-base mb-1">Kerja Praktik</h4>
-                      <p className="text-sm text-gray-600">Panduan magang & KP</p>
-                    </button>
-                    <button 
-                      onClick={() => setSelectedCategory('MBKM')}
-                      className="group bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200/50 rounded-2xl p-5 text-left hover:shadow-lg hover:scale-105 transition-all cursor-pointer"
-                    >
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-md">
-                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                        </svg>
-                      </div>
-                      <h4 className="font-bold text-gray-900 text-base mb-1">Program MBKM</h4>
-                      <p className="text-sm text-gray-600">Info Merdeka Belajar</p>
-                    </button>
-                    <button 
-                      onClick={() => setSelectedCategory('Registrasi MK')}
-                      className="group bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200/50 rounded-2xl p-5 text-left hover:shadow-lg hover:scale-105 transition-all cursor-pointer"
-                    >
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-md">
-                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                        </svg>
-                      </div>
-                      <h4 className="font-bold text-gray-900 text-base mb-1">Registrasi MK</h4>
-                      <p className="text-sm text-gray-600">Daftar mata kuliah</p>
-                    </button>
+                    </div>
+                    <p className="mt-2 text-sm text-gray-500 text-center">
+                      {selectedCategory ? `Kategori terpilih: ${selectedCategory}` : 'Silakan pilih kategori untuk memulai chat'}
+                    </p>
                   </div>
                 </div>
               )}
@@ -603,50 +586,53 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
             </div>
           )}
 
-          {/* Messages */}
-          {messages.map((message) => (
-            <div key={message.id} className={`flex gap-3 ${message.isUser ? 'justify-end' : 'justify-start'} group`}>
+              {/* Messages */}
+          {messages.map((message, index) => (
+            <div 
+              key={message.id} 
+              className={`flex gap-4 ${message.isUser ? 'justify-end' : 'justify-start'} group animate-in fade-in slide-in-from-bottom-2 duration-300`}
+            >
               {!message.isUser && (
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shrink-0 shadow-md group-hover:scale-110 transition-transform duration-200">
-                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-cyan-100 group-hover:scale-105 transition-transform duration-300">
+                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
                   </svg>
                 </div>
               )}
 
-              <div className={`max-w-2xl ${message.isUser ? 'order-first' : ''}`}>
+              <div className={`max-w-[85%] md:max-w-2xl ${message.isUser ? 'order-first' : ''}`}>
                 <div 
-                  className={`rounded-2xl px-5 py-3.5 shadow-sm group-hover:shadow-md transition-all duration-200 ${
+                  className={`rounded-2xl px-6 py-4 shadow-sm transition-all duration-200 ${
                     message.isUser
-                      ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-tr-md'
-                      : 'bg-gradient-to-br from-white to-gray-50/50 text-gray-900 border-2 border-gray-100 group-hover:border-cyan-200 rounded-tl-md'
+                      ? 'bg-gradient-to-br from-cyan-600 to-blue-600 text-white rounded-tr-sm shadow-blue-100'
+                      : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm shadow-gray-100'
                   }`}
                 >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                    {message.text}
-                    {message.isStreaming && (
-                      <span className="inline-flex items-center ml-2 text-sm opacity-70">
-                        <span className="animate-pulse">●</span>
-                        <span className="ml-1 italic">typing</span>
-                      </span>
-                    )}
-                  </p>
+                  <div className="prose prose-sm max-w-none">
+                    <p className={`text-[15px] leading-relaxed whitespace-pre-wrap ${message.isUser ? 'text-white' : 'text-gray-800'}`}>
+                      {message.text}
+                      {message.isStreaming && (
+                        <span className="inline-flex items-center ml-2 gap-1">
+                          <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                          <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                          <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce"></span>
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </div>
-                <div className={`mt-1.5 px-1 flex items-center gap-1.5 ${message.isUser ? 'justify-end' : 'justify-start'}`}>
-                  <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-xs text-gray-400 font-medium">
-                    {message.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                <div className={`mt-2 flex items-center gap-2 ${message.isUser ? 'justify-end' : 'justify-start'} opacity-0 group-hover:opacity-100 transition-opacity duration-200`}>
+                  <span className="text-[11px] text-gray-400 font-medium tracking-wide uppercase">
+                    {message.isUser ? 'You' : 'Obrolin AI'} • {message.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
               </div>
 
               {message.isUser && (
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0 shadow-md group-hover:scale-110 transition-transform duration-200">
-                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                  </svg>
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shrink-0 shadow-sm border border-gray-200">
+                  <span className="text-sm font-bold text-gray-600">
+                    {session?.user?.name?.charAt(0).toUpperCase() || 'U'}
+                  </span>
                 </div>
               )}
             </div>
@@ -662,66 +648,22 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
           {/* Input Form - Same Level as Messages */}
           <form onSubmit={handleSubmit} className="w-full">
             <div className="space-y-4">
-              {/* Category Selector */}
-              <div className="relative">
-                <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                    <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                    </svg>
-                  </div>
-                  Select Topic Category
-                </label>
-                <div className="relative group">
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    disabled={isLoading || isSessionLoading}
-                    className="w-full px-5 py-4 bg-gradient-to-r from-white to-gray-50 border-2 border-gray-200 rounded-xl text-base font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:border-cyan-300 hover:shadow-md appearance-none cursor-pointer group-hover:from-cyan-50/30 group-hover:to-blue-50/30"
-                    style={{
-                      backgroundImage: selectedCategory ? 'linear-gradient(to right, rgb(236 254 255), rgb(224 242 254))' : undefined
-                    }}
-                  >
-                    {categories.map((cat) => (
-                      <option 
-                        key={cat.id} 
-                        value={cat.id} 
-                        disabled={cat.disabled}
-                        className="py-2 text-gray-900 font-medium"
-                      >
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4">
-                    <div className={`transition-transform duration-200 ${selectedCategory ? 'text-cyan-600' : 'text-gray-400'}`}>
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
+              {/* Active Category Indicator (Minimalist) */}
+              {messages.length > 0 && selectedCategory && (
+                <div className="flex justify-center pb-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-gray-50 border border-gray-200 rounded-full shadow-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Topic:</span>
+                    <span className="text-xs font-semibold text-gray-700">
+                      {categories.find(c => c.id === selectedCategory)?.name || selectedCategory}
+                    </span>
                   </div>
                 </div>
-                {!selectedCategory && (
-                  <p className="mt-2 text-xs text-gray-500 flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Choose a category to start chatting
-                  </p>
-                )}
-              </div>
+              )}
 
               {/* Input Box */}
               <div className="flex gap-3 items-end">
                 <div className="flex-1 relative">
-                  <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                      <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                      </svg>
-                    </div>
-                    Type Your Message
-                  </label>
                   <div className="relative group">
                     <textarea
                       ref={textareaRef}
@@ -737,72 +679,38 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
                       }}
                       placeholder={
                         !selectedCategory
-                          ? "Select a category first to start chatting..."
-                          : "Ask me anything about your academic needs..."
+                          ? "Pilih kategori di atas untuk memulai..."
+                          : "Ketik pesanmu di sini..."
                       }
                       disabled={!selectedCategory || isLoading}
                       rows={1}
-                      className="w-full px-5 py-4 pr-32 bg-gradient-to-r from-white to-gray-50 border-2 border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all text-gray-900 placeholder-gray-400 hover:border-emerald-300 group-hover:shadow-md font-medium"
-                      style={{ minHeight: '56px', maxHeight: '140px' }}
+                      className="w-full px-4 py-3 pr-12 bg-white border border-gray-200 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-gray-800 placeholder-gray-400 shadow-sm hover:shadow-md"
+                      style={{ minHeight: '52px', maxHeight: '160px' }}
                     />
-                    
-                    {/* Character count and enter hint */}
-                    <div className="absolute bottom-3 right-3 flex items-center gap-3">
-                      {input.trim() && (
-                        <div className="flex items-center gap-1.5 px-2 py-1 bg-white rounded-md border border-gray-200 shadow-sm">
-                          <svg className="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="text-xs font-semibold text-gray-600">{input.length}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-md border border-emerald-200">
-                        <svg className="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        <span className="text-xs font-semibold text-emerald-700">Enter</span>
-                      </div>
-                    </div>
-
-                    {/* Decorative gradient border on focus */}
-                    {input.trim() && (
-                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-t-xl opacity-75"></div>
-                    )}
                   </div>
-                  
-                  {!selectedCategory && (
-                    <p className="mt-2 text-xs text-amber-600 flex items-center gap-1.5 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                      <span className="font-medium">Please select a category above to enable messaging</span>
-                    </p>
-                  )}
                 </div>
 
                 {isLoading ? (
                   <button
                     type="button"
                     onClick={handleStopGeneration}
-                    className="px-6 py-3.5 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white text-sm font-semibold rounded-xl transition-all transform hover:scale-105 shadow-md hover:shadow-lg flex items-center gap-2"
+                    className="p-4 bg-red-50 text-red-600 hover:bg-red-100 rounded-2xl transition-all shadow-sm border border-red-100 flex items-center justify-center"
+                    title="Stop generating"
                   >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <rect x="6" y="6" width="12" height="12" rx="1" />
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                      <rect x="6" y="6" width="12" height="12" rx="2" />
                     </svg>
-                    Stop
                   </button>
                 ) : (
                   <button
                     type="submit"
                     disabled={!canSendMessage}
-                    className="px-6 py-3.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white text-sm font-semibold rounded-xl transition-all transform hover:scale-105 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    className="p-4 bg-gradient-to-br from-cyan-500 to-blue-600 text-white rounded-2xl transition-all shadow-md hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none flex items-center justify-center"
+                    title="Send message"
                   >
-                    <span className="flex items-center gap-2">
-                      Send
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                      </svg>
-                    </span>
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
                   </button>
                 )}
               </div>

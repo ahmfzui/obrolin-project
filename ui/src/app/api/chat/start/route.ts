@@ -140,26 +140,10 @@ Error: Connection refused to ${ragApiUrl}
       );
     }
 
-    // Persist a lightweight DB record so this conversation shows in the user's history list
-    try {
-      // read optional category from the request body (client may provide it)
-      const body = await request.json().catch(() => ({} as any));
-      const categoryFromRequest = (body && body.category) ? String(body.category) : 'Uncategorized';
-      const userId = parseInt(session.user.id as string);
-      await db.chat.create({
-        data: {
-          userId,
-          Category: categoryFromRequest,
-          Question: '',
-          Answer: '',
-          conversation_id: conversationId,
-        } as any,
-      });
-      console.log('[CHAT_START] Created lightweight DB chat row for user:', userId);
-    } catch (dbErr: any) {
-      console.warn('[CHAT_START] Failed to create DB chat row (non-fatal):', dbErr?.message || dbErr);
-    }
-
+    // NOTE: We do NOT create a DB record here anymore.
+    // The DB record will be created by the /stream endpoint when the first message is actually sent.
+    // This prevents empty "New Conversation" rooms from cluttering the history.
+    
     console.log('[CHAT_START] ✅ SUCCESS - conversation_id:', conversationId);
     console.log('========================================\n');
 

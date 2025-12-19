@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 export default function ModernNavbar() {
@@ -15,13 +16,16 @@ export default function ModernNavbar() {
           {/* Left: Logo/Brand - only show for non-admin */}
           <div className="flex items-center">
             {session?.user?.role !== 'admin' && (
-              <Link href="/chat" className="flex items-center gap-2">
-                <div className="w-9 h-9 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
-                  <span className="text-lg font-bold text-white">O</span>
+              <Link href={session ? "/chat" : "/"} className="flex items-center gap-2">
+                <div className="relative h-12 w-32 flex items-center">
+                  <Image
+                    src="https://i.ibb.co.com/zHhWc18h/Obrol-In.png"
+                    alt="Obrolin Logo"
+                    fill
+                    className="object-contain object-left"
+                    priority
+                  />
                 </div>
-                <span className="text-lg font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
-                  Obrolin
-                </span>
               </Link>
             )}
           </div>
