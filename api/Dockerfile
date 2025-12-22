@@ -3,14 +3,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies for easyocr, pillow, pymupdf
-RUN apt-get update && apt-get install -y \
-    libgl1 \
-    libglib2.0-0 \
+# Install minimal system dependencies (removed libgl1, libglib2.0-0 for easyocr)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python packages directly
+# Install Python packages directly (removed easyocr, pillow, pymupdf)
 RUN pip install --no-cache-dir \
     langchain==0.3.27 \
     langchain-core==0.3.72 \
@@ -37,10 +35,7 @@ RUN pip install --no-cache-dir \
     python-docx \
     python-pptx \
     openpyxl \
-    pymupdf \
-    easyocr \
     fastembed \
-    pillow \
     numpy \
     httpx
 
@@ -49,9 +44,10 @@ COPY . .
 
 # Railway provides PORT env var
 ENV PORT=5000
+ENV PYTHONUNBUFFERED=1
 
 # Healthcheck
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s \
-  CMD python -c "import requests; requests.get('http://localhost:${PORT}/health')"
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD python -c "import httpx; httpx.get('http://localhost:${PORT}/health', timeout=5.0)" || exit 1
 
-CMD python db_setup.py && uvicorn fastapi-app:app --host 0.0.0.0 --port $PORT
+CMD ["sh", "-c", "python db_setup.py && uvicorn fastapi-app:app --host 0.0.0.0 --port $PORT"]

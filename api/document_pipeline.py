@@ -39,7 +39,8 @@ class DocumentPipeline:
         )
         self.openai_client = OpenAI(api_key=OPENAI_API_KEY)
         self.sparse_model = SparseTextEmbedding(model_name="Qdrant/minicoil-v1")
-        self.document_extractor = DocumentExtractor(use_ocr=True, ocr_languages=['id', 'en'])
+        # Removed OCR parameters
+        self.document_extractor = DocumentExtractor()
         
         self._ensure_collection()
     

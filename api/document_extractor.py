@@ -1,6 +1,6 @@
 """
 Document Extractor Module
-Handles text extraction from various file formats with OCR support
+Handles text extraction from various file formats
 """
 
 import os
@@ -14,10 +14,6 @@ import pdfplumber
 from docx import Document
 from pptx import Presentation
 import openpyxl
-import fitz
-from PIL import Image
-import numpy as np
-import easyocr
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -33,15 +29,9 @@ class DocumentExtractor:
         'text': ['.txt', '.md']
     }
     
-    def __init__(self, use_ocr: bool = True, ocr_languages: list = None):
-        self.use_ocr = use_ocr
-        self.ocr_languages = ocr_languages or ['id', 'en']
-        self.ocr_reader = None
-        
-        if self.use_ocr:
-            logger.info(f"Initializing OCR with languages: {self.ocr_languages}")
-            self.ocr_reader = easyocr.Reader(self.ocr_languages, gpu=False)
-            logger.info("OCR initialized successfully")
+    def __init__(self):
+        """Initialize DocumentExtractor without OCR"""
+        logger.info("DocumentExtractor initialized (OCR disabled)")
     
     def is_supported_file(self, filename: str) -> bool:
         ext = Path(filename).suffix.lower()
@@ -87,8 +77,7 @@ class DocumentExtractor:
                 result['metadata'].update({
                     'filename': filename,
                     'file_type': file_type,
-                    'text_length': len(result['text']),
-                    'ocr_used': result.get('metadata', {}).get('ocr_used', False)
+                    'text_length': len(result['text'])
                 })
             
             return result
@@ -104,30 +93,27 @@ class DocumentExtractor:
     
     def _extract_from_pdf(self, file_content: bytes, filename: str) -> Dict:
         text_parts = []
-        metadata = {'pages': 0, 'method': 'text_extraction', 'ocr_used': False}
+        metadata = {'pages': 0, 'method': 'text_extraction'}
         
         try:
+            # Try pdfplumber first (better for complex layouts)
             with pdfplumber.open(io.BytesIO(file_content)) as pdf:
                 metadata['pages'] = len(pdf.pages)
                 
                 for page_num, page in enumerate(pdf.pages, 1):
                     page_text = page.extract_text()
                     
-                    if page_text and len(page_text.strip()) > 50:
+                    if page_text and len(page_text.strip()) > 10:
                         text_parts.append(page_text)
-                    elif self.use_ocr and self.ocr_reader:
-                        logger.info(f"Using OCR for page {page_num} of {filename}")
-                        ocr_text = self._ocr_pdf_page(file_content, page_num - 1)
-                        if ocr_text:
-                            text_parts.append(ocr_text)
-                            metadata['ocr_used'] = True
+                    else:
+                        logger.warning(f"Page {page_num} of {filename} has minimal text")
             
             if not text_parts:
                 return {
                     'success': False,
                     'text': '',
                     'metadata': metadata,
-                    'error': 'No text found in PDF'
+                    'error': 'No text found in PDF (OCR not available)'
                 }
             
             return {
@@ -138,29 +124,25 @@ class DocumentExtractor:
             }
             
         except Exception as e:
-            logger.warning(f"pdfplumber failed for {filename}: {str(e)}")
+            logger.warning(f"pdfplumber failed for {filename}: {str(e)}, trying PyPDF2")
             
             try:
+                # Fallback to PyPDF2
                 pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_content))
                 metadata['pages'] = len(pdf_reader.pages)
                 metadata['method'] = 'PyPDF2'
                 
                 for page_num, page in enumerate(pdf_reader.pages, 1):
                     page_text = page.extract_text()
-                    if page_text and len(page_text.strip()) > 50:
+                    if page_text and len(page_text.strip()) > 10:
                         text_parts.append(page_text)
-                    elif self.use_ocr and self.ocr_reader:
-                        ocr_text = self._ocr_pdf_page(file_content, page_num - 1)
-                        if ocr_text:
-                            text_parts.append(ocr_text)
-                            metadata['ocr_used'] = True
                 
                 if not text_parts:
                     return {
                         'success': False,
                         'text': '',
                         'metadata': metadata,
-                        'error': 'No text found in PDF'
+                        'error': 'No text found in PDF (OCR not available)'
                     }
                 
                 return {
@@ -176,29 +158,6 @@ class DocumentExtractor:
                     'metadata': metadata,
                     'error': f'PDF processing failed: {str(pdf_error)}'
                 }
-    
-    def _ocr_pdf_page(self, file_content: bytes, page_num: int) -> str:
-        try:
-            doc = fitz.open(stream=file_content, filetype="pdf")
-            page = doc[page_num]
-            
-            zoom = 2.5
-            mat = fitz.Matrix(zoom, zoom)
-            pix = page.get_pixmap(matrix=mat)
-            
-            img_data = pix.tobytes("png")
-            image = Image.open(io.BytesIO(img_data))
-            image_array = np.array(image)
-            
-            result = self.ocr_reader.readtext(image_array, detail=0, paragraph=False)
-            
-            doc.close()
-            
-            return ' '.join(result) if result else ''
-            
-        except Exception as e:
-            logger.error(f"OCR failed for page {page_num}: {str(e)}")
-            return ''
     
     def _extract_from_word(self, file_content: bytes) -> Dict:
         try:
@@ -254,7 +213,7 @@ class DocumentExtractor:
                                 slide_texts.append(row_text)
                 
                 if slide_texts:
-                    text_parts.append('\n'.join(slide_texts))
+                    text_parts.append(f"[Slide {slide_num}]\n" + '\n'.join(slide_texts))
             
             metadata = {'slides': len(prs.slides)}
             
@@ -280,6 +239,7 @@ class DocumentExtractor:
             text_parts = []
             for sheet_name in workbook.sheetnames:
                 sheet = workbook[sheet_name]
+                text_parts.append(f"[Sheet: {sheet_name}]")
                 
                 for row in sheet.iter_rows(values_only=True):
                     row_text = ' | '.join(str(cell) if cell is not None else '' for cell in row)
@@ -290,7 +250,7 @@ class DocumentExtractor:
             
             return {
                 'success': True,
-                'text': '\n\n'.join(text_parts),
+                'text': '\n'.join(text_parts),
                 'metadata': metadata,
                 'error': None
             }
