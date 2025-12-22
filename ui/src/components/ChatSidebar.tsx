@@ -36,13 +36,27 @@ export default function ChatSidebar({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const categories = [
-    { id: 'all', name: 'All' },
-    { id: 'Capstone', name: 'Capstone' },
-    { id: 'KP', name: 'KP' },
-    { id: 'MBKM', name: 'MBKM' },
-    { id: 'Registrasi MK', name: 'Registrasi' },
-  ];
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([
+    { id: 'all', name: 'All' }
+  ]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch('/api/documents/categories');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.categories && Array.isArray(data.categories)) {
+            const dynamicCats = data.categories.map((c: string) => ({ id: c, name: c }));
+            setCategories([{ id: 'all', name: 'All' }, ...dynamicCats]);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch categories', err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     if (session?.user) {

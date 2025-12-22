@@ -588,6 +588,12 @@ async def upload_document_stream(
     
     return StreamingResponse(generate_progress(), media_type="text/event-stream")
 
+@app.get("/documents/categories/")
+async def get_categories():
+    """Get all unique categories from documents"""
+    categories = document_pipeline.get_unique_categories()
+    return {"categories": categories}
+
 @app.post("/documents/search/", response_model=SearchResponse)
 def search_documents(request: SearchRequest):
     """Search documents in vector database"""

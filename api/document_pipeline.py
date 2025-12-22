@@ -542,3 +542,34 @@ class DocumentPipeline:
                 'error': str(e),
                 'deleted_count': 0
             }
+
+    def get_unique_categories(self) -> List[str]:
+        """
+        Retrieve unique categories from the Qdrant collection.
+        """
+        try:
+            categories = set()
+            next_offset = None
+            
+            while True:
+                records, next_offset = self.qdrant_client.scroll(
+                    collection_name=COLLECTION_NAME,
+                    scroll_filter=None,
+                    limit=100,
+                    with_payload=["category"],
+                    with_vectors=False,
+                    offset=next_offset
+                )
+                
+                for record in records:
+                    if record.payload and "category" in record.payload:
+                        categories.add(record.payload["category"])
+                
+                if next_offset is None:
+                    break
+            
+            return sorted(list(categories))
+        except Exception as e:
+            logger.error(f"Error retrieving categories: {e}")
+            return []
+

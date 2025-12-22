@@ -18,14 +18,6 @@ interface ProgressStatus {
   message: string;
 }
 
-const categories = [
-  { id: '', name: 'Select Category', disabled: true },
-  { id: 'Capstone', name: 'Capstone Project' },
-  { id: 'KP', name: 'Internship (KP)' },
-  { id: 'MBKM', name: 'MBKM Program' },
-  { id: 'Registrasi MK', name: 'Course Registration' },
-];
-
 interface ModernChatWindowProps {
   selectedChat?: any | null;
   isSidebarOpen?: boolean;
@@ -35,6 +27,28 @@ interface ModernChatWindowProps {
 const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSidebar }: ModernChatWindowProps, ref) => {
   const { data: session, status: sessionStatus } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string; disabled?: boolean }[]>([
+    { id: '', name: 'Select Category', disabled: true }
+  ]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch('/api/documents/categories');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.categories && Array.isArray(data.categories)) {
+            const dynamicCats = data.categories.map((c: string) => ({ id: c, name: c }));
+            setCategories([{ id: '', name: 'Select Category', disabled: true }, ...dynamicCats]);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch categories', err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
