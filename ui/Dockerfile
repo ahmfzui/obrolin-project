@@ -6,6 +6,7 @@ FROM node:20-alpine AS base
 FROM base AS deps
 WORKDIR /app
 COPY package*.json ./
+RUN test -f package-lock.json || npm install
 RUN npm ci
 
 # Builder
