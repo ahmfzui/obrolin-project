@@ -16,7 +16,7 @@ COPY prisma ./prisma
 
 # Install dependencies (this will run prisma generate via postinstall)
 RUN npm ci
-
+RUN prisma generate
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
