@@ -133,7 +133,8 @@ def get_conversation_history(thread_id):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving conversation history: {str(e)}")
 
-def send_message_to_agent(user_input, thread_id, category=None):
+# Update function send_message_to_agent jadi async
+async def send_message_to_agent(user_input, thread_id, category=None):
     """Send message to the chatbot and get response with optional category filter"""
     try:
         from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -152,7 +153,8 @@ def send_message_to_agent(user_input, thread_id, category=None):
         if category:
             invoke_state["category"] = category
         
-        result = graph.invoke(
+        # Use ainvoke instead of invoke
+        result = await graph.ainvoke(
             invoke_state,
             config={"configurable": {"thread_id": thread_id}}
         )
@@ -224,7 +226,7 @@ def delete_conversation(request: ConversationID):
     return {"message": f"Conversation {request.conversation_id} has been deleted"}
 
 @app.post("/conversations/chat/", response_model=ChatResponse)
-def chat(input_payload: UserMessage):
+async def chat(input_payload: UserMessage):
     """Send a message to the chatbot with optional category filter"""
     thread_id = input_payload.conversation_id
     
@@ -236,7 +238,7 @@ def chat(input_payload: UserMessage):
         raise HTTPException(status_code=400, detail="Message content cannot be empty")
     
     # Send message and get response with category filter if provided
-    response_content = send_message_to_agent(
+    response_content = await send_message_to_agent(
         input_payload.content, 
         thread_id,
         category=input_payload.category
