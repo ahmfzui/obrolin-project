@@ -12,7 +12,7 @@ RUN apk add --no-cache openssl libc6-compat
 COPY package.json package-lock.json* ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Rebuild the source code only when needed
 FROM base AS builder
