@@ -42,7 +42,7 @@ RUN pip install --no-cache-dir \
     httpx
 
 # Copy all application code from api folder
-COPY api/ .
+COPY . .
 
 # Railway provides PORT env var
 ENV PORT=5000
