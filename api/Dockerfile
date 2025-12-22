@@ -3,12 +3,14 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install minimal system dependencies (removed libgl1, libglib2.0-0 for easyocr)
+# Install system dependencies for PostgreSQL and other packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev \
+    gcc \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python packages directly (removed easyocr, pillow, pymupdf)
+# Install Python packages directly
 RUN pip install --no-cache-dir \
     langchain==0.3.27 \
     langchain-core==0.3.72 \
@@ -23,7 +25,7 @@ RUN pip install --no-cache-dir \
     langsmith==0.4.4 \
     pydantic>=2.10.0 \
     python-dotenv==1.1.1 \
-    psycopg==3.2.9 \
+    psycopg[binary]==3.2.9 \
     openai==1.93.3 \
     tiktoken==0.9.0 \
     qdrant-client \
@@ -39,8 +41,8 @@ RUN pip install --no-cache-dir \
     numpy \
     httpx
 
-# Copy application code
-COPY . .
+# Copy all application code from api folder
+COPY api/ .
 
 # Railway provides PORT env var
 ENV PORT=5000
