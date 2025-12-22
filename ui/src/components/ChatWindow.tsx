@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { canSend, incrementCount, getCount, secondsUntilReset, subscribeQuota, DAILY_LIMIT, setCount, getResetLabel } from '@/lib/chatQuota';
+import QuotaModal from './QuotaModal';
 import ChatBubble from './ChatBubble';
 import { useSession } from 'next-auth/react';
 
@@ -49,8 +51,17 @@ export default function ChatWindow() {
       return;
     }
 
-    // Create conversation on first send if needed
-    if (!conversationId) {
+    // client-side daily quota check (per-user)
+    const userId = (session as any)?.user?.id;
+    if (!canSend(userId)) {
+      setError(`Limit chat harian tercapai (${DAILY_LIMIT}). Reset pada 00:01 besok.`);
+      return;
+    }
+
+    // Ensure we have a conversation ID. Use a local var so we can
+    // use the newly-created ID immediately (setState is async).
+    let convId = conversationId;
+    if (!convId) {
       try {
         setIsInitializing(true);
         const startRes = await fetch('/api/chat/start', {
@@ -66,7 +77,8 @@ export default function ChatWindow() {
         }
         const startData = await startRes.json();
         if (!startData?.conversation_id) throw new Error('Server did not return conversation_id');
-        setConversationId(startData.conversation_id);
+        convId = startData.conversation_id;
+        setConversationId(convId);
       } catch (err: any) {
         setError(err?.message || 'Failed to start conversation');
         setIsInitializing(false);
@@ -108,15 +120,37 @@ export default function ChatWindow() {
         body: JSON.stringify({
           question: userMessage.text,
           category: selectedCategory,
-          conversation_id: conversationId,
+          conversation_id: convId,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
+        // Server-enforced quota exceeded
+        if (res.status === 429) {
+          try { setCount(userId, DAILY_LIMIT); } catch {}
+          const notice = data?.answer || data?.error || 'Anda telah mencapai batas pertanyaan harian.';
+          // replace placeholder with quota notice
+          setMessages((current) => {
+            const updated = [...current];
+            const last = updated[updated.length - 1];
+            if (last && !last.isUser) {
+              last.text = notice;
+            } else {
+              updated.push({ id: crypto.randomUUID(), text: notice, isUser: false });
+            }
+            return updated;
+          });
+          setIsLoading(false);
+          return;
+        }
+
         throw new Error(data.error || data.answer || 'Gagal mengirim pesan');
       }
+
+      // increment quota for a successful send
+      try { incrementCount(userId); } catch {}
 
       // replace the placeholder with actual answer
       setMessages((current) => {
@@ -151,12 +185,51 @@ export default function ChatWindow() {
   };
 
   const isSessionLoading = sessionStatus === 'loading' || isInitializing;
+  const userId = (session as any)?.user?.id;
+  const [quotaCount, setQuotaCount] = useState(() => getCount(userId));
+  const [resetSecs, setResetSecs] = useState(() => secondsUntilReset());
+  const [showQuotaModal, setShowQuotaModal] = useState(false);
+
+  useEffect(() => {
+    // update when session changes
+    setQuotaCount(getCount(userId));
+  }, [userId]);
+
+  useEffect(() => {
+    const sub = subscribeQuota(() => setQuotaCount(getCount(userId)), userId);
+    const t = setInterval(() => setResetSecs(secondsUntilReset()), 1000);
+    return () => { sub(); clearInterval(t); };
+  }, [userId]);
+
+  // Show the quota modal when user hits the limit (but allow dismiss for the day)
+  useEffect(() => {
+    const uid = userId || 'anon';
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `obrolin:quota_modal_dismissed:${uid}`;
+    const dismissed = typeof window !== 'undefined' ? sessionStorage.getItem(key) : null;
+    if (!canSend(userId) && dismissed !== today) {
+      setShowQuotaModal(true);
+    } else {
+      setShowQuotaModal(false);
+    }
+  }, [userId, quotaCount]);
 
   // Debug info untuk development
   const showDebugInfo = process.env.NODE_ENV === 'development';
 
   return (
     <div className="border rounded-lg shadow-lg bg-white">
+      <QuotaModal
+        open={showQuotaModal}
+        onClose={() => {
+          const uid = userId || 'anon';
+          const today = new Date().toISOString().slice(0, 10);
+          try { sessionStorage.setItem(`obrolin:quota_modal_dismissed:${uid}`, today); } catch {}
+          setShowQuotaModal(false);
+        }}
+        message={`Anda telah mencapai batas pertanyaan harian (${DAILY_LIMIT}).`}
+        resetLabel={getResetLabel()}
+      />
       {/* Debug Info (hanya di development) */}
       {showDebugInfo && (
         <div className="bg-gray-100 p-2 text-xs font-mono border-b">
@@ -228,7 +301,7 @@ export default function ChatWindow() {
             </div>
           </div>
         )}
-        
+
         {messages.length === 0 && !error && (
           <div className="text-center text-gray-500 m-auto">
             {isSessionLoading ? (
@@ -249,15 +322,15 @@ export default function ChatWindow() {
             )}
           </div>
         )}
-        
+
         {messages.map((msg) => (
           <ChatBubble key={msg.id} text={msg.text} isUser={msg.isUser} />
         ))}
-        
+
         {isLoading && (
           <ChatBubble text="Sedang mengetik..." isUser={false} />
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 
@@ -275,7 +348,7 @@ export default function ChatWindow() {
                 : 'Ketik pertanyaan Anda...'
             }
             className="flex-grow p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-            disabled={isSessionLoading || !selectedCategory || isLoading}
+            disabled={isSessionLoading || !selectedCategory || isLoading || !canSend(userId)}
         />
         <button
           type="submit"
@@ -284,12 +357,18 @@ export default function ChatWindow() {
             isSessionLoading ||
             !selectedCategory ||
             !input.trim() ||
-            isLoading
+            isLoading || !canSend(userId)
           }
         >
           {isLoading ? '⏳' : '📤'}
         </button>
       </form>
+      {/* quota notice */}
+      {!canSend(userId) && (
+        <div className="p-2 text-sm text-yellow-700 bg-yellow-50 border border-yellow-100 rounded mt-2">
+          Limit chat harian telah tercapai ({quotaCount}/{DAILY_LIMIT}). {getResetLabel()}.
+        </div>
+      )}
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 
-const categories = [
+const DEFAULT_CATEGORIES = [
   { id: 'Capstone', name: 'Capstone' },
   { id: 'Internship', name: 'Internship' },
   { id: 'MBKM', name: 'MBKM' },
@@ -14,6 +14,7 @@ export default function DocumentUpload() {
   const { data: session } = useSession();
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState<string>('Capstone');
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>(DEFAULT_CATEGORIES);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>('');
   const [uploadResult, setUploadResult] = useState<any>(null);
@@ -37,6 +38,27 @@ export default function DocumentUpload() {
       }
     };
     load();
+    // also fetch categories for dropdown suggestions
+    (async () => {
+      try {
+        const res = await fetch('/api/documents/categories');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (mounted && data?.categories && Array.isArray(data.categories)) {
+          const parsed = data.categories.map((c: any) => (typeof c === 'string' ? { id: c, name: c } : { id: c.id || c, name: c.name || c }));
+          setCategories((prev) => {
+            const ids = new Set(prev.map(p => p.id));
+            const merged = [...prev];
+            for (const p of parsed) if (!ids.has(p.id)) merged.push(p);
+            return merged;
+          });
+          // if current selected category is not in list, keep as-is
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+
     return () => { mounted = false };
   }, []);
 
@@ -61,9 +83,10 @@ export default function DocumentUpload() {
     setUploadResult(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('category', category);
+  const finalCategory = category;
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('category', finalCategory);
 
       setUploadProgress('Mengupload dokumen...');
       
@@ -140,19 +163,23 @@ export default function DocumentUpload() {
             <label htmlFor="category" className="block text-sm font-semibold text-gray-700 mb-2">
               Kategori Dokumen
             </label>
-            <select
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all bg-white text-gray-900"
-              disabled={isUploading}
-            >
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+            <div className="space-y-2">
+              <select
+                id="category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all bg-white text-gray-900"
+                disabled={isUploading}
+              >
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+
+              {/* Optional new-category input removed per UX request */}
+            </div>
           </div>
 
           {/* File Selection */}
@@ -344,6 +371,41 @@ export default function DocumentUpload() {
                 </li>
               ))}
             </ul>
+
+            {/* Add Category (admin) */}
+            {((session as any)?.user?.role === 'admin' || (session as any)?.user?.isAdmin) && (
+              <div className="mt-6 p-4 border-t bg-gray-50 rounded-md">
+                <h4 className="text-sm font-semibold mb-2">Tambah Kategori</h4>
+                <p className="text-sm text-gray-600 mb-3">Tambahkan kategori baru agar muncul di dropdown upload.</p>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  const input = document.getElementById('admin-new-category') as HTMLInputElement | null;
+                  const val = input?.value?.trim();
+                  if (!val) return;
+                  try {
+                    const res = await fetch('/api/documents/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: val }) });
+                    if (!res.ok) {
+                      const err = await res.json().catch(() => ({ error: res.statusText }));
+                      throw new Error(err.error || 'Gagal menambahkan kategori');
+                    }
+                    const data = await res.json();
+                    if (data?.categories && Array.isArray(data.categories)) {
+                      // merge into local suggestions
+                      setCategories(() => data.categories.map((c: any) => ({ id: c, name: c })));
+                    }
+                    if (input) input.value = '';
+                  } catch (err: any) {
+                    console.error('Add category error', err);
+                    // swallow error; could show notification
+                  }
+                }}>
+                  <div className="flex gap-2">
+                    <input id="admin-new-category" placeholder="Nama kategori baru" className="flex-1 px-3 py-2 border rounded-md text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+                    <button type="submit" className="px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700">Tambah</button>
+                  </div>
+                </form>
+              </div>
+            )}
           </div>
         </div>
       </div>

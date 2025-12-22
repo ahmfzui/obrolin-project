@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { canSend, incrementCount, getCount, secondsUntilReset, subscribeQuota, DAILY_LIMIT, setCount, getResetLabel } from '@/lib/chatQuota';
+import QuotaModal from './QuotaModal';
 import { useSession } from 'next-auth/react';
 
 import Image from 'next/image';
@@ -77,6 +79,33 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
+  const userId = (session as any)?.user?.id;
+  const [quotaCount, setQuotaCount] = useState(() => getCount(userId));
+  const [resetSecs, setResetSecs] = useState(() => secondsUntilReset());
+  const [showQuotaModal, setShowQuotaModal] = useState(false);
+
+  useEffect(() => {
+    setQuotaCount(getCount(userId));
+  }, [userId]);
+
+  useEffect(() => {
+    const unsub = subscribeQuota(() => setQuotaCount(getCount(userId)), userId);
+    const t = setInterval(() => setResetSecs(secondsUntilReset()), 1000);
+    return () => { unsub(); clearInterval(t); };
+  }, [userId]);
+
+  useEffect(() => {
+    const uid = userId || 'anon';
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `obrolin:quota_modal_dismissed:${uid}`;
+    const dismissed = typeof window !== 'undefined' ? sessionStorage.getItem(key) : null;
+    if (!canSend(userId) && dismissed !== today) {
+      setShowQuotaModal(true);
+    } else {
+      setShowQuotaModal(false);
+    }
+  }, [userId, quotaCount]);
+
   const initRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -180,7 +209,9 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
     }
 
     // If we don't yet have a conversationId, create one now.
-    if (!conversationId) {
+    // Use a local convId so we can use it immediately after creation.
+    let convId = conversationId;
+    if (!convId) {
       try {
         setIsInitializing(true);
         const startRes = await fetch('/api/chat/start', {
@@ -200,7 +231,8 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
           throw new Error('Server did not return conversation_id');
         }
 
-        setConversationId(startData.conversation_id);
+        convId = startData.conversation_id;
+        setConversationId(convId);
       } catch (err: any) {
         setError(err?.message || 'Failed to start conversation');
         setIsInitializing(false);
@@ -211,6 +243,12 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
     }
 
     if (!input.trim()) return;
+
+    // client-side daily quota check (per-user)
+    if (!canSend(userId)) {
+      setError(`Limit chat harian tercapai (${DAILY_LIMIT}). Reset pada 00:01 besok.`);
+      return;
+    }
 
     setError('');
     setIsLoading(true);
@@ -248,15 +286,37 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
         body: JSON.stringify({
           question: userMessage.text,
           category: selectedCategory,
-          conversation_id: conversationId,
+          conversation_id: convId,
         }),
         signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        if (response.status === 429) {
+          try { setCount(userId, DAILY_LIMIT); } catch {}
+          const notice = errorData?.answer || errorData?.error || 'Anda telah mencapai batas pertanyaan harian.';
+          // replace placeholder with quota notice
+          setMessages(current => {
+            const updated = [...current];
+            const lastMsg = updated[updated.length - 1];
+            if (lastMsg && !lastMsg.isUser) {
+              lastMsg.text = notice;
+              lastMsg.isStreaming = false;
+            } else {
+              updated.push({ id: generateUUID(), text: notice, isUser: false, timestamp: new Date() } as any);
+            }
+            return updated;
+          });
+          setIsLoading(false);
+          setProgressStatus(null);
+          return;
+        }
         throw new Error(errorData.error || 'Failed to send message');
       }
+
+  // increment quota for successful send (per-user)
+  try { incrementCount(userId); } catch {}
 
       // clear the thinking status once streaming begins
       setProgressStatus(null);
@@ -498,6 +558,17 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
       </div>
 
       {/* Feedback Modal */}
+      <QuotaModal
+        open={showQuotaModal}
+        onClose={() => {
+          const uid = userId || 'anon';
+          const today = new Date().toISOString().slice(0, 10);
+          try { sessionStorage.setItem(`obrolin:quota_modal_dismissed:${uid}`, today); } catch {}
+          setShowQuotaModal(false);
+        }}
+        message={`Anda telah mencapai batas pertanyaan harian (${DAILY_LIMIT}).`}
+        resetLabel={getResetLabel()}
+      />
       {showFeedbackModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
           <div 
@@ -672,7 +743,7 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
                               ? "Pilih kategori di atas untuk memulai..."
                               : "Ketik pesanmu di sini..."
                           }
-                          disabled={!selectedCategory || isLoading}
+                            disabled={!selectedCategory || isLoading || !canSend(userId)}
                           rows={1}
                           className="w-full px-8 py-6 pr-16 bg-white border-2 border-gray-100 rounded-[2rem] resize-none focus:outline-none focus:ring-4 focus:ring-cyan-500/10 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-gray-800 placeholder-gray-400 shadow-lg hover:shadow-xl hover:border-cyan-200 text-lg scrollbar-none"
                           style={{ minHeight: '80px', maxHeight: '200px' }}
@@ -680,7 +751,7 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
                         <div className="absolute right-4 bottom-4">
                           <button
                             type="submit"
-                            disabled={!canSendMessage}
+                            disabled={!canSendMessage || !canSend(userId)}
                             className="p-3.5 bg-gradient-to-br from-cyan-500 to-blue-600 text-white rounded-2xl transition-all shadow-md hover:shadow-lg hover:shadow-cyan-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none flex items-center justify-center"
                             title="Send message"
                           >
@@ -691,6 +762,12 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
                         </div>
                       </div>
                     </form>
+                    {/* quota notice */}
+                    {!canSend(userId) && (
+                      <div className="mt-2 text-sm text-yellow-800 bg-yellow-50 border border-yellow-100 rounded p-2 max-w-2xl mx-auto">
+                        Limit chat harian telah tercapai ({quotaCount}/{DAILY_LIMIT}). {getResetLabel()}.
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -828,7 +905,7 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
                           ? "Pilih kategori di atas untuk memulai..."
                           : "Ketik pesanmu di sini..."
                       }
-                      disabled={!selectedCategory || isLoading}
+                      disabled={!selectedCategory || isLoading || !canSend(userId)}
                       rows={1}
                       className="w-full px-5 py-4 pr-12 bg-white border border-gray-200 rounded-2xl resize-none focus:outline-none focus:ring-4 focus:ring-cyan-500/10 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-gray-800 placeholder-gray-400 shadow-sm hover:shadow-md hover:border-cyan-200"
                       style={{ minHeight: '60px', maxHeight: '180px' }}
@@ -848,9 +925,9 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
                     </svg>
                   </button>
                 ) : (
-                  <button
+                    <button
                     type="submit"
-                    disabled={!canSendMessage}
+                    disabled={!canSendMessage || !canSend(userId)}
                     className="p-4 bg-gradient-to-br from-cyan-500 to-blue-600 text-white rounded-2xl transition-all shadow-md hover:shadow-lg hover:shadow-cyan-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none flex items-center justify-center h-[60px] w-[60px]"
                     title="Send message"
                   >
