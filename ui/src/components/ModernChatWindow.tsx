@@ -50,7 +50,10 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
         if (res.ok) {
           const data = await res.json();
           if (data.categories && Array.isArray(data.categories)) {
-            const dynamicCats = data.categories.map((c: string) => ({ id: c, name: c }));
+            const dynamicCats = data.categories.map((c: string) => ({ 
+              id: c, 
+              name: c.replace(/([a-z])([A-Z])/g, '$1 $2') 
+            }));
             setCategories([{ id: '', name: 'Select Category', disabled: true }, ...dynamicCats]);
           }
         }

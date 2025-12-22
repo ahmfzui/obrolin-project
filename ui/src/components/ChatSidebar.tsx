@@ -47,7 +47,10 @@ export default function ChatSidebar({
         if (res.ok) {
           const data = await res.json();
           if (data.categories && Array.isArray(data.categories)) {
-            const dynamicCats = data.categories.map((c: string) => ({ id: c, name: c }));
+            const dynamicCats = data.categories.map((c: string) => ({ 
+              id: c, 
+              name: c.replace(/([a-z])([A-Z])/g, '$1 $2') 
+            }));
             setCategories([{ id: 'all', name: 'All' }, ...dynamicCats]);
           }
         }
@@ -380,7 +383,7 @@ function ChatItem({ chat, onSelect, onDelete }: { chat: ChatHistoryItem; onSelec
           {new Date(chat.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
         </span>
         <span className="text-xs font-semibold px-2 py-0.5 bg-cyan-50 text-cyan-600 rounded-md border border-cyan-100">
-          {chat.Category}
+          {chat.Category.replace(/([a-z])([A-Z])/g, '$1 $2')}
         </span>
       </div>
       
