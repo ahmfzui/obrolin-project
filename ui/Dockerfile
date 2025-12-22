@@ -21,14 +21,19 @@ RUN npm ci
 FROM base AS builder
 WORKDIR /app
 
-# Copy dependencies AND generated Prisma client from deps stage
+# Install openssl for Prisma
+RUN apk add --no-cache openssl libc6-compat
+
+# Copy node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/prisma ./prisma
+
+# Copy prisma schema
+COPY prisma ./prisma
 
 # Copy all source files
 COPY . .
 
-# Generate Prisma Client again in builder stage
+# Generate Prisma Client in builder stage
 RUN npx prisma generate
 
 # Build Next.js app
@@ -42,6 +47,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+
+# Install openssl for Prisma runtime
+RUN apk add --no-cache openssl libc6-compat
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
