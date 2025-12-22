@@ -1,3 +1,6 @@
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '../../auth/[...nextauth]/route'
@@ -10,12 +13,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-  // compute average rating and count from Chat.Feedback (we store numeric 1-5 in Chat.Feedback)
-  const agg = await db.$queryRaw`SELECT AVG("Feedback") as avg_rating, COUNT("Feedback") as count FROM "Chat" WHERE "Feedback" IS NOT NULL`
-  // $queryRaw returns array
-  const row: any = Array.isArray(agg) ? agg[0] : agg
-  const avg = row?.avg_rating ? Number(row.avg_rating) : 0
-  const count = row?.count ? Number(row.count) : 0
+    const agg = await db.$queryRaw`
+      SELECT AVG("Feedback") as avg_rating, COUNT("Feedback") as count
+      FROM "Chat"
+      WHERE "Feedback" IS NOT NULL
+    `
+
+    const row: any = Array.isArray(agg) ? agg[0] : agg
+    const avg = row?.avg_rating ? Number(row.avg_rating) : 0
+    const count = row?.count ? Number(row.count) : 0
 
     return NextResponse.json({ average: avg, count })
   } catch (err) {
