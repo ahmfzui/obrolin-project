@@ -6,8 +6,11 @@ import Providers from './providers'; // <-- 1. Impor provider kita
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Obrol.in Chat Bot',
+  title: 'Obrol.in',
   description: 'Layanan Informasi Akademik',
+  icons: {
+    icon: '/logo.ico',
+  },
 };
 
 export default function RootLayout({

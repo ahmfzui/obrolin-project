@@ -161,7 +161,7 @@ export default function ChatSidebar({
         <div className="flex items-center justify-between mb-6">
           <div className="relative h-8 w-28">
             <Image
-              src="https://i.ibb.co.com/zHhWc18h/Obrol-In.png"
+              src="/logotanpaobrolin.png"
               alt="Obrolin Logo"
               fill
               className="object-contain object-left"

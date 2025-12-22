@@ -24,6 +24,18 @@ interface ModernChatWindowProps {
   onToggleSidebar?: () => void;
 }
 
+// Helper to generate UUIDs (works in non-secure contexts too)
+const generateUUID = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSidebar }: ModernChatWindowProps, ref) => {
   const { data: session, status: sessionStatus } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -113,7 +125,7 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
           }
           const data = await res.json();
           const msgs = (data.messages || []).map((m: any) => ({
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             text: m.content,
             isUser: m.type === 'user',
             // Use message timestamp if available, otherwise fallback to chat creation time, then current time
@@ -130,10 +142,10 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
         // Fallback: use DB-stored Question / Answer as a two-message conversation
         const fallback: Message[] = [];
         if (selectedChat.Question) {
-          fallback.push({ id: crypto.randomUUID(), text: selectedChat.Question, isUser: true, timestamp: new Date(selectedChat.created_at) });
+          fallback.push({ id: generateUUID(), text: selectedChat.Question, isUser: true, timestamp: new Date(selectedChat.created_at) });
         }
         if (selectedChat.Answer) {
-          fallback.push({ id: crypto.randomUUID(), text: selectedChat.Answer, isUser: false, timestamp: new Date(selectedChat.created_at) });
+          fallback.push({ id: generateUUID(), text: selectedChat.Answer, isUser: false, timestamp: new Date(selectedChat.created_at) });
         }
         setMessages(fallback);
         setConversationId(selectedChat.conversation_id || '');
@@ -201,7 +213,7 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
     setIsLoading(true);
 
     const userMessage: Message = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       text: input,
       isUser: true,
       timestamp: new Date(),
@@ -213,7 +225,7 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
     try {
       // show immediate feedback: add a placeholder bot message and a "thinking" status
       const placeholderBot: Message = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         text: '',
         isUser: false,
         timestamp: new Date(),
@@ -345,7 +357,7 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
       lastUpdateRef.current = 0;
 
       const errorMessage: Message = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         text: `Error: ${err.message}`,
         isUser: false,
         timestamp: new Date(),
