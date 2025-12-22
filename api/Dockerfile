@@ -12,11 +12,7 @@ RUN apt-get update && apt-get install -y \
 
 # Install Python packages directly
 RUN pip install --no-cache-dir \
-    streamlit==1.46.1 \
     langchain==0.3.27 \
-    langchain-anthropic==0.3.18 \
-    langchain-chroma==0.2.5 \
-    langchain-community==0.3.27 \
     langchain-core==0.3.72 \
     langchain-openai==0.3.27 \
     langchain-text-splitters==0.3.9 \
@@ -30,7 +26,6 @@ RUN pip install --no-cache-dir \
     pydantic>=2.10.0 \
     python-dotenv==1.1.1 \
     psycopg==3.2.9 \
-    chromadb==1.0.20 \
     openai==1.93.3 \
     tiktoken==0.9.0 \
     qdrant-client \
@@ -47,7 +42,6 @@ RUN pip install --no-cache-dir \
     fastembed \
     pillow \
     numpy \
-    chainlit==1.3.1 \
     httpx
 
 # Copy application code
