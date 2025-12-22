@@ -16,17 +16,20 @@ COPY prisma ./prisma
 
 # Install dependencies (this will run prisma generate via postinstall)
 RUN npm ci
-RUN npx prisma generate
+
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
 
-# Copy dependencies from deps stage
+# Copy dependencies AND generated Prisma client from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/prisma ./prisma
 
 # Copy all source files
 COPY . .
+
+# Generate Prisma Client again in builder stage
+RUN npx prisma generate
 
 # Build Next.js app
 ENV NEXT_TELEMETRY_DISABLED=1
