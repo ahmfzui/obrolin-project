@@ -136,15 +136,16 @@ def get_conversation_history(thread_id):
 def send_message_to_agent(user_input, thread_id, category=None):
     """Send message to the chatbot and get response with optional category filter"""
     try:
-        from langchain_core.messages import AIMessage
+        from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
         state = graph.get_state(config={"configurable": {"thread_id": thread_id}})
         
         messages = []
         
         if len(state.values) == 0:
-            messages.append({"role": "system", "content": main_agent.system_prompt})
+            messages.append(SystemMessage(content=main_agent.system_prompt))
         
-        messages.append({"role": "user", "content": user_input})
+        # Add timestamp to user message
+        messages.append(HumanMessage(content=user_input, additional_kwargs={"timestamp": get_current_datetime_string()}))
         
         # Include category in the state
         invoke_state = {"user_prompt": user_input, "messages": messages}
@@ -158,10 +159,15 @@ def send_message_to_agent(user_input, thread_id, category=None):
         
         save_conversation_to_db(thread_id)
         
+        # Update AI message with timestamp
         updated_state = graph.get_state(config={"configurable": {"thread_id": thread_id}})
         if updated_state.values and "messages" in updated_state.values:
             latest_message = updated_state.values["messages"][-1]
             if isinstance(latest_message, AIMessage):
+                # Add timestamp to the AI message
+                latest_message.additional_kwargs["timestamp"] = get_current_datetime_string()
+                # Update the state with the modified message
+                graph.update_state(config={"configurable": {"thread_id": thread_id}}, values={"messages": [latest_message]})
                 return latest_message.content
         
         return "No response generated"
@@ -256,7 +262,7 @@ async def chat_stream(input_payload: UserMessage):
     
     async def generate_stream():
         try:
-            from langchain_core.messages import HumanMessage, SystemMessage
+            from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
             
             # Stage 1: Thinking (Immediate feedback)
             yield f"data: {json.dumps({'stage': 'thinking', 'message': 'Berpikir...', 'icon': '🤔'})}\n\n"
@@ -268,7 +274,8 @@ async def chat_stream(input_payload: UserMessage):
             if len(state.values) == 0:
                 messages.append(SystemMessage(content=main_agent.system_prompt))
             
-            messages.append(HumanMessage(content=input_payload.content))
+            # Add timestamp to user message
+            messages.append(HumanMessage(content=input_payload.content, additional_kwargs={"timestamp": get_current_datetime_string()}))
             
             invoke_state = {
                 "user_prompt": input_payload.content, 
@@ -318,6 +325,14 @@ async def chat_stream(input_payload: UserMessage):
             # Update last activity
             save_conversation_to_db(thread_id)
             
+            # Update AI message with timestamp
+            updated_state = graph.get_state(config={"configurable": {"thread_id": thread_id}})
+            if updated_state.values and "messages" in updated_state.values:
+                latest_message = updated_state.values["messages"][-1]
+                if isinstance(latest_message, AIMessage):
+                    latest_message.additional_kwargs["timestamp"] = get_current_datetime_string()
+                    graph.update_state(config={"configurable": {"thread_id": thread_id}}, values={"messages": [latest_message]})
+            
             yield f"data: {json.dumps({'stage': 'complete', 'message': 'Selesai!', 'icon': '✅', 'full_content': full_response})}\n\n"
             
         except Exception as e:
@@ -334,6 +349,19 @@ async def chat_stream(input_payload: UserMessage):
         }
     )
 
+def get_conversation_created_at(thread_id):
+    """Get conversation creation time"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT created_at FROM conversation_metadata WHERE thread_id = %s", (thread_id,))
+                row = cur.fetchone()
+                if row:
+                    return row[0].strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        pass
+    return get_current_datetime_string()
+
 @app.post("/conversations/history/", response_model=HistoryResponse)
 def get_conversation_history_endpoint(request: ConversationID):
     """Get conversation history"""
@@ -343,20 +371,26 @@ def get_conversation_history_endpoint(request: ConversationID):
     from langchain_core.messages import HumanMessage, AIMessage
     messages = get_conversation_history(request.conversation_id)
     
+    # Get conversation creation time as fallback for old messages
+    fallback_timestamp = get_conversation_created_at(request.conversation_id)
+    
     formatted_messages = []
     for message in messages:
+        # Try to get timestamp from message metadata, fallback to conversation creation time
+        timestamp = message.additional_kwargs.get("timestamp", fallback_timestamp)
+        
         if isinstance(message, HumanMessage):
             formatted_messages.append({
                 "type": "user",
                 "content": message.content,
-                "timestamp": get_current_datetime_string()
+                "timestamp": timestamp
             })
         elif isinstance(message, AIMessage):
             if message.content:
                 formatted_messages.append({
                     "type": "ai",
                     "content": message.content,
-                    "timestamp": get_current_datetime_string()
+                    "timestamp": timestamp
                 })
     
     return HistoryResponse(

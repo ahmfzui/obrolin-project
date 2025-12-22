@@ -28,9 +28,11 @@ const categories = [
 
 interface ModernChatWindowProps {
   selectedChat?: any | null;
+  isSidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
 }
 
-const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, ref) => {
+const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSidebar }: ModernChatWindowProps, ref) => {
   const { data: session, status: sessionStatus } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -44,6 +46,7 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
   const [feedbackRating, setFeedbackRating] = useState<number>(5);
   const [feedbackComment, setFeedbackComment] = useState<string>('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   const initRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -51,6 +54,18 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const streamBufferRef = useRef<string>('');
   const lastUpdateRef = useRef<number>(0);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // NOTE: we no longer auto-create a RAG conversation on mount. Creating
   // the lightweight DB row (and RAG conversation) is deferred until the
@@ -61,6 +76,11 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
   useEffect(() => {
     const loadSelected = async () => {
       if (!selectedChat) return;
+
+      // Set category from selected chat immediately
+      if (selectedChat.Category) {
+        setSelectedCategory(selectedChat.Category);
+      }
 
       // If the selected chat has a conversation_id, fetch history from RAG via proxy
       const convId = selectedChat.conversation_id;
@@ -82,7 +102,8 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
             id: crypto.randomUUID(),
             text: m.content,
             isUser: m.type === 'user',
-            timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+            // Use message timestamp if available, otherwise fallback to chat creation time, then current time
+            timestamp: m.timestamp ? new Date(m.timestamp) : (selectedChat.created_at ? new Date(selectedChat.created_at) : new Date()),
             isStreaming: false,
           }));
           setMessages(msgs);
@@ -185,7 +206,7 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
         isStreaming: true,
       };
       setMessages(current => [...current, placeholderBot]);
-      setProgressStatus({ stage: 'thinking', message: 'Mikiiiir... sedang memproses...' });
+      setProgressStatus({ stage: 'thinking', message: 'Sedang memproses pertanyaan Anda...' });
 
       abortControllerRef.current = new AbortController();
 
@@ -419,70 +440,84 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
 
   return (
     <div className="flex flex-col h-full bg-white relative">
+      {/* Header Bar */}
+      <div className="h-16 border-b border-gray-100 flex items-center justify-between px-4 md:px-6 bg-white/80 backdrop-blur-sm z-10">
+        <div className="flex items-center gap-4">
+          {!isSidebarOpen && (
+            <button
+              onClick={onToggleSidebar}
+              className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors"
+              title="Open sidebar"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          )}
+          <div className="relative h-8 w-24 opacity-80 hover:opacity-100 transition-opacity">
+            <Image
+              src="https://i.ibb.co.com/zHhWc18h/Obrol-In.png"
+              alt="Obrolin Logo"
+              fill
+              className="object-contain object-left"
+              priority
+            />
+          </div>
+        </div>
+        
+        {/* Optional: Add more header actions here if needed */}
+      </div>
+
       {/* Feedback Modal */}
       {showFeedbackModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
           <div 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300" 
             onClick={() => setShowFeedbackModal(false)} 
           />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8 z-10 transform transition-all">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 z-10 transform transition-all scale-100 animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-cyan-200">
                 <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Rate Your Experience</h3>
-              <p className="text-sm text-gray-500">Help us improve by sharing your feedback</p>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Selesai Mengobrol?</h3>
+              <p className="text-sm text-gray-500">Bantu kami menjadi lebih baik dengan memberikan rating!</p>
             </div>
 
             {/* Rating */}
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">How helpful was this chat?</label>
+            <div className="mb-8">
               <div className="flex items-center justify-center gap-3">
                 {[1,2,3,4,5].map((n) => (
                   <button
                     key={n}
                     onClick={() => setFeedbackRating(n)}
-                    className={`group relative w-14 h-14 rounded-xl border-2 transition-all duration-200 ${
+                    className={`group relative w-12 h-12 rounded-xl border-2 transition-all duration-200 flex items-center justify-center ${
                       feedbackRating === n 
-                        ? 'bg-gradient-to-br from-cyan-500 to-blue-600 border-cyan-500 text-white shadow-lg scale-110' 
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-cyan-300 hover:bg-cyan-50'
+                        ? 'bg-gradient-to-br from-cyan-500 to-blue-600 border-transparent text-white shadow-lg scale-110' 
+                        : 'bg-white text-gray-400 border-gray-100 hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-600'
                     }`}
                   >
                     <span className="text-lg font-bold">{n}</span>
-                    {feedbackRating === n && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    )}
                   </button>
                 ))}
               </div>
-              <div className="flex justify-between mt-2 px-2">
-                <span className="text-xs text-gray-400">Not helpful</span>
-                <span className="text-xs text-gray-400">Very helpful</span>
+              <div className="flex justify-between mt-3 px-4">
+                <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Kurang</span>
+                <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Sangat Baik</span>
               </div>
             </div>
 
             {/* Comment */}
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <svg className="w-4 h-4 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                </svg>
-                Additional Comments (Optional)
-              </label>
+            <div className="mb-8">
               <textarea
                 value={feedbackComment}
                 onChange={(e) => setFeedbackComment(e.target.value)}
-                placeholder="Share your thoughts about this chat..."
-                className="w-full border-2 border-gray-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all placeholder-gray-400"
-                rows={4}
+                placeholder="Ceritakan pengalamanmu (opsional)..."
+                className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all placeholder-gray-400"
+                rows={3}
               />
             </div>
 
@@ -490,30 +525,16 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
             <div className="flex gap-3">
               <button 
                 onClick={skipFeedbackAndClear} 
-                className="flex-1 px-5 py-3 rounded-xl text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200"
+                className="flex-1 px-5 py-3.5 rounded-xl text-sm font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 transition-all duration-200"
               >
-                Skip for Now
+                Lewati
               </button>
               <button 
                 onClick={submitFeedbackAndClear} 
                 disabled={isSubmittingFeedback} 
-                className="flex-1 px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-sm font-semibold hover:shadow-lg hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-200 flex items-center justify-center gap-2"
+                className="flex-1 px-5 py-3.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-sm font-semibold hover:shadow-lg hover:shadow-cyan-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none transition-all duration-200 flex items-center justify-center gap-2"
               >
-                {isSubmittingFeedback ? (
-                  <>
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Submit Feedback
-                  </>
-                )}
+                {isSubmittingFeedback ? 'Mengirim...' : 'Kirim Feedback'}
               </button>
             </div>
           </div>
@@ -521,103 +542,169 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
       )}
 
       {/* Main Container - Messages + Input Area Combined */}
-      <div className="flex-1 overflow-y-auto px-6 py-6 bg-white flex flex-col">
-        <div className="max-w-5xl mx-auto w-full flex-1 flex flex-col">
+      <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 bg-white flex flex-col scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
+        <div className="max-w-4xl mx-auto w-full flex-1 flex flex-col">
           {/* Messages Section */}
-          <div className="flex-1 space-y-6 mb-6">
-            {/* Welcome Message */}
-            {messages.length === 0 && !error && (
-              <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+          <div className="flex-1 space-y-8 mb-8">
+            {/* Welcome Message & Centered Input (When no messages) */}
+            {messages.length === 0 && !error ? (
+              <div className="flex flex-col items-center justify-center min-h-[70vh] text-center animate-in fade-in zoom-in duration-500">
                 {isSessionLoading ? (
-                  <div className="space-y-4">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center animate-pulse shadow-lg">
-                      <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="space-y-6">
+                    <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center animate-pulse shadow-xl shadow-cyan-200">
+                      <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
                     </div>
-                    <p className="text-sm text-gray-600 font-medium">Memuat...</p>
+                    <p className="text-sm text-gray-500 font-medium tracking-wide uppercase">Memuat...</p>
                   </div>
                 ) : (
-                <div className="space-y-8 max-w-3xl px-4 w-full">
-                  <div className="space-y-4 text-center">
-                    <div className="relative w-64 h-32 mx-auto mb-4">
-                      <Image
-                        src="https://i.ibb.co.com/zHhWc18h/Obrol-In.png"
-                        alt="Obrolin Logo"
-                        fill
-                        className="object-contain"
-                        priority
-                      />
+                <div className="space-y-10 max-w-2xl px-4 w-full">
+                  <div className="space-y-6 text-center">
+                    <div>
+                        <h2 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-blue-600 mb-4 tracking-tight">
+                        Halo, {session?.user?.name || 'Guest'}!
+                        </h2>
+                        <p className="text-gray-500 text-lg font-medium leading-relaxed">
+                        Pilih topik di bawah ini dan mulai diskusikan kebutuhan akademikmu.
+                        </p>
                     </div>
-                    <h2 className="text-3xl font-bold text-gray-900">
-                      Halo, {session?.user?.name || 'Guest'}! 👋
-                    </h2>
-                    <p className="text-gray-600 text-lg">
-                      Pilih kategori di bawah dan mulai bertanya tentang info akademik kampusmu!
-                    </p>
                   </div>
                   
-                  <div className="max-w-md mx-auto">
-                    <label htmlFor="category-select" className="block text-sm font-medium text-gray-700 mb-2">
-                      Pilih Kategori Percakapan
-                    </label>
-                    <div className="relative">
-                      <select
-                        id="category-select"
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="block w-full pl-4 pr-10 py-4 text-base text-gray-900 border-gray-300 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm rounded-xl shadow-sm bg-white border-2 cursor-pointer appearance-none"
+                  <div className="max-w-2xl mx-auto space-y-8">
+                    {/* Custom Dropdown */}
+                    <div className="relative" ref={dropdownRef}>
+                      <button
+                        type="button"
+                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                        className={`w-full flex items-center justify-between px-6 py-5 bg-white border-2 rounded-2xl transition-all duration-200 ${
+                          isDropdownOpen 
+                            ? 'border-cyan-500 ring-4 ring-cyan-500/10 shadow-lg' 
+                            : 'border-gray-100 hover:border-cyan-200 hover:shadow-md'
+                        }`}
                       >
-                        <option value="" disabled className="text-gray-500">-- Pilih Kategori --</option>
-                        <option value="Capstone" className="text-gray-900">Capstone Project</option>
-                        <option value="KP" className="text-gray-900">Kerja Praktik (KP)</option>
-                        <option value="MBKM" className="text-gray-900">Program MBKM</option>
-                        <option value="Registrasi MK" className="text-gray-900">Registrasi Mata Kuliah</option>
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <span className={`text-lg font-medium ${selectedCategory ? 'text-gray-900' : 'text-gray-400'}`}>
+                          {selectedCategory 
+                            ? categories.find(c => c.id === selectedCategory)?.name 
+                            : '-- Pilih Kategori Percakapan --'}
+                        </span>
+                        <svg 
+                          className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180 text-cyan-500' : ''}`} 
+                          fill="none" 
+                          viewBox="0 0 24 24" 
+                          stroke="currentColor"
+                        >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
-                      </div>
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      {isDropdownOpen && (
+                        <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                          <div className="py-2">
+                            {categories.filter(c => !c.disabled).map((category) => (
+                              <button
+                                key={category.id}
+                                onClick={() => {
+                                  setSelectedCategory(category.id);
+                                  setIsDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-6 py-3.5 text-base font-medium transition-colors ${
+                                  selectedCategory === category.id
+                                    ? 'bg-cyan-50 text-cyan-700'
+                                    : 'text-gray-700 hover:bg-gray-50 hover:text-cyan-600'
+                                }`}
+                              >
+                                {category.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <p className="mt-2 text-sm text-gray-500 text-center">
-                      {selectedCategory ? `Kategori terpilih: ${selectedCategory}` : 'Silakan pilih kategori untuk memulai chat'}
-                    </p>
+
+                    {/* Centered Input Box */}
+                    <form onSubmit={handleSubmit} className="w-full relative">
+                      <div className="relative group">
+                        <textarea
+                          ref={textareaRef}
+                          value={input}
+                          onChange={(e) => setInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              if (canSendMessage) {
+                                handleSubmit(e);
+                              }
+                            }
+                          }}
+                          placeholder={
+                            !selectedCategory
+                              ? "Pilih kategori di atas untuk memulai..."
+                              : "Ketik pesanmu di sini..."
+                          }
+                          disabled={!selectedCategory || isLoading}
+                          rows={1}
+                          className="w-full px-8 py-6 pr-16 bg-white border-2 border-gray-100 rounded-[2rem] resize-none focus:outline-none focus:ring-4 focus:ring-cyan-500/10 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-gray-800 placeholder-gray-400 shadow-lg hover:shadow-xl hover:border-cyan-200 text-lg scrollbar-none"
+                          style={{ minHeight: '80px', maxHeight: '200px' }}
+                        />
+                        <div className="absolute right-4 bottom-4">
+                          <button
+                            type="submit"
+                            disabled={!canSendMessage}
+                            className="p-3.5 bg-gradient-to-br from-cyan-500 to-blue-600 text-white rounded-2xl transition-all shadow-md hover:shadow-lg hover:shadow-cyan-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none flex items-center justify-center"
+                            title="Send message"
+                          >
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </form>
                   </div>
                 </div>
               )}
             </div>
-          )}
+            ) : (
 
-          {/* Error Display */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-3xl mx-auto">
-              <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-red-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              // Normal Chat Flow
+              <>
+                {/* Error Display */}
+                {error && (
+            <div className="bg-red-50 border border-red-100 rounded-2xl p-4 max-w-2xl mx-auto animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center shrink-0">
+                    <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
                 <div className="flex-1">
-                  <p className="text-sm text-red-800">{error}</p>
-                  <button
+                  <p className="text-sm font-medium text-red-800">{error}</p>
+                </div>
+                <button
                     onClick={handleRetryInit}
-                    className="mt-2 text-sm font-medium text-red-700 hover:text-red-800"
+                    className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
                   >
                     Retry
-                  </button>
-                </div>
+                </button>
               </div>
             </div>
           )}
 
               {/* Messages */}
-          {messages.map((message, index) => (
+          {messages.map((message, index) => {
+            const isLastMessage = index === messages.length - 1;
+            const showProgressInBubble = isLastMessage && !message.isUser && progressStatus && message.isStreaming && !message.text;
+
+            return (
             <div 
               key={message.id} 
-              className={`flex gap-4 ${message.isUser ? 'justify-end' : 'justify-start'} group animate-in fade-in slide-in-from-bottom-2 duration-300`}
+              className={`flex gap-4 ${message.isUser ? 'justify-end' : 'justify-start'} group animate-in fade-in slide-in-from-bottom-4 duration-500`}
             >
               {!message.isUser && (
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-cyan-100 group-hover:scale-105 transition-transform duration-300">
-                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shrink-0 shadow-md mt-1">
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
                   </svg>
                 </div>
@@ -625,59 +712,66 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
 
               <div className={`max-w-[85%] md:max-w-2xl ${message.isUser ? 'order-first' : ''}`}>
                 <div 
-                  className={`rounded-2xl px-6 py-4 shadow-sm transition-all duration-200 ${
+                  className={`rounded-2xl px-6 py-3.5 transition-all duration-200 ${
                     message.isUser
-                      ? 'bg-gradient-to-br from-cyan-600 to-blue-600 text-white rounded-tr-sm shadow-blue-100'
-                      : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm shadow-gray-100'
+                      ? 'bg-gradient-to-br from-cyan-600 to-blue-600 text-white rounded-tr-sm shadow-cyan-100'
+                      : 'bg-white text-gray-800 border border-gray-200 rounded-tl-sm shadow-md ring-1 ring-gray-100 border-l-4 border-l-cyan-500'
                   }`}
                 >
+                  {showProgressInBubble ? (
+                    <div className="flex items-center gap-3 py-1">
+                      <div className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+                      </div>
+                      <span className="text-sm font-medium text-gray-500 animate-pulse">
+                        {progressStatus.message}
+                      </span>
+                    </div>
+                  ) : (
                   <div className="prose prose-sm max-w-none">
                     <p className={`text-[15px] leading-relaxed whitespace-pre-wrap ${message.isUser ? 'text-white' : 'text-gray-800'}`}>
                       {message.text}
                       {message.isStreaming && (
                         <span className="inline-flex items-center ml-2 gap-1">
-                          <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                          <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                          <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce"></span>
+                          <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                          <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                          <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></span>
                         </span>
                       )}
                     </p>
                   </div>
-                </div>
-                <div className={`mt-2 flex items-center gap-2 ${message.isUser ? 'justify-end' : 'justify-start'} opacity-0 group-hover:opacity-100 transition-opacity duration-200`}>
-                  <span className="text-[11px] text-gray-400 font-medium tracking-wide uppercase">
-                    {message.isUser ? 'You' : 'Obrolin AI'} • {message.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
+                  )}
                 </div>
               </div>
 
               {message.isUser && (
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shrink-0 shadow-sm border border-gray-200">
-                  <span className="text-sm font-bold text-gray-600">
-                    {session?.user?.name?.charAt(0).toUpperCase() || 'U'}
-                  </span>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shrink-0 shadow-sm border border-gray-200 mt-1">
+                  <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
                 </div>
               )}
             </div>
-          ))}
-
-          {/* progressStatus is used for internal stage updates but we don't render
-              the separate status bar to avoid duplicate UI; the placeholder
-              bot message serves as the visible feedback. */}
+            );
+          })}
+              </>
+            )}
 
           <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Form - Same Level as Messages */}
-          <form onSubmit={handleSubmit} className="w-full">
+          {/* Bottom Input Form - Only show if there are messages */}
+          {messages.length > 0 && (
+            <form onSubmit={handleSubmit} className="w-full">
             <div className="space-y-4">
               {/* Active Category Indicator (Minimalist) */}
               {messages.length > 0 && selectedCategory && (
                 <div className="flex justify-center pb-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-gray-50 border border-gray-200 rounded-full shadow-sm">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Topic:</span>
-                    <span className="text-xs font-semibold text-gray-700">
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gray-50 border border-gray-200 rounded-full shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Topik:</span>
+                    <span className="text-xs font-bold text-gray-700">
                       {categories.find(c => c.id === selectedCategory)?.name || selectedCategory}
                     </span>
                   </div>
@@ -707,8 +801,8 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
                       }
                       disabled={!selectedCategory || isLoading}
                       rows={1}
-                      className="w-full px-4 py-3 pr-12 bg-white border border-gray-200 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-gray-800 placeholder-gray-400 shadow-sm hover:shadow-md"
-                      style={{ minHeight: '52px', maxHeight: '160px' }}
+                      className="w-full px-5 py-4 pr-12 bg-white border border-gray-200 rounded-2xl resize-none focus:outline-none focus:ring-4 focus:ring-cyan-500/10 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-gray-800 placeholder-gray-400 shadow-sm hover:shadow-md hover:border-cyan-200"
+                      style={{ minHeight: '60px', maxHeight: '180px' }}
                     />
                   </div>
                 </div>
@@ -717,7 +811,7 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
                   <button
                     type="button"
                     onClick={handleStopGeneration}
-                    className="p-4 bg-red-50 text-red-600 hover:bg-red-100 rounded-2xl transition-all shadow-sm border border-red-100 flex items-center justify-center"
+                    className="p-4 bg-red-50 text-red-600 hover:bg-red-100 rounded-2xl transition-all shadow-sm border border-red-100 flex items-center justify-center h-[60px] w-[60px]"
                     title="Stop generating"
                   >
                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -728,7 +822,7 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
                   <button
                     type="submit"
                     disabled={!canSendMessage}
-                    className="p-4 bg-gradient-to-br from-cyan-500 to-blue-600 text-white rounded-2xl transition-all shadow-md hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none flex items-center justify-center"
+                    className="p-4 bg-gradient-to-br from-cyan-500 to-blue-600 text-white rounded-2xl transition-all shadow-md hover:shadow-lg hover:shadow-cyan-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none flex items-center justify-center h-[60px] w-[60px]"
                     title="Send message"
                   >
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -739,6 +833,7 @@ const ModernChatWindow = forwardRef(({ selectedChat }: ModernChatWindowProps, re
               </div>
             </div>
           </form>
+          )}
         </div>
       </div>
     </div>
