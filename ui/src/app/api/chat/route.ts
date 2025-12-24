@@ -6,7 +6,7 @@ import { authOptions } from '../auth/[...nextauth]/route';
 import { db } from '../../../lib/db';
 import { createConversation, chatWithRag } from '../../../lib/ragClient';
 
-const DAILY_LIMIT = 50; // Sesuai FR-10 (Batas Pertanyaan Harian)
+const DAILY_LIMIT = 10; // per-user daily limit
 
 // Ini adalah fungsi GET untuk mengambil riwayat (sudah kita buat sebelumnya)
 export async function GET(request: Request) {
