@@ -3,7 +3,7 @@
 // Reset policy: quota resets at 00:01 local time the next day.
 
 const STORAGE_KEY = 'obrolin:chat_quota';
-const DAILY_LIMIT = 10;
+const DAILY_LIMIT = 20;
 
 type QuotaRecord = {
   date: string; // YYYY-MM-DD

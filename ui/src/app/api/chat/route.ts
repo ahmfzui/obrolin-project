@@ -119,6 +119,7 @@ export async function POST(request: Request) {
               Category: category,
               Question: question,
               Answer: ragAnswer,
+              message_count: { increment: 1 },
             } as any,
           });
         } else {

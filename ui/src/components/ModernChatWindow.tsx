@@ -48,15 +48,27 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch('/api/documents/categories');
+        // Fetch from RAG (Qdrant) for User Chat
+        const res = await fetch('/api/documents/categories?source=rag');
         if (res.ok) {
           const data = await res.json();
           if (data.categories && Array.isArray(data.categories)) {
-            const dynamicCats = data.categories.map((c: string) => ({ 
-              id: c, 
-              name: c.replace(/([a-z])([A-Z])/g, '$1 $2') 
-            }));
-            setCategories([{ id: '', name: 'Select Category', disabled: true }, ...dynamicCats]);
+            const dynamicCats = data.categories.map((c: any) => {
+              if (typeof c === 'string') {
+                 const spaced = c.replace(/([a-z])([A-Z])/g, '$1 $2');
+                 return { 
+                   id: c, 
+                   name: spaced.charAt(0).toUpperCase() + spaced.slice(1)
+                 };
+              }
+              return c;
+            });
+            // Only show fetched categories, remove static placeholder if data exists
+            if (dynamicCats.length > 0) {
+               setCategories(dynamicCats);
+               // Auto-select first if none selected
+               if (!selectedCategory) setSelectedCategory(dynamicCats[0].id);
+            }
           }
         }
       } catch (err) {
@@ -211,9 +223,7 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
     let currentConversationId = conversationId;
 
     // If we don't yet have a conversationId, create one now.
-    // Use a local convId so we can use it immediately after creation.
-    let convId = conversationId;
-    if (!convId) {
+    if (!currentConversationId) {
       try {
         setIsInitializing(true);
         const startRes = await fetch('/api/chat/start', {
@@ -233,8 +243,8 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
           throw new Error('Server did not return conversation_id');
         }
 
-        convId = startData.conversation_id;
-        setConversationId(convId);
+        currentConversationId = startData.conversation_id;
+        setConversationId(currentConversationId);
       } catch (err: any) {
         setError(err?.message || 'Failed to start conversation');
         setIsInitializing(false);
@@ -288,7 +298,7 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
         body: JSON.stringify({
           question: userMessage.text,
           category: selectedCategory,
-          conversation_id: conversationId,
+          conversation_id: currentConversationId,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -681,7 +691,7 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
                     <p className="text-sm text-gray-500 font-medium tracking-wide uppercase">Memuat...</p>
                   </div>
                 ) : (
-                <div className="space-y-10 max-w-2xl px-4 w-full">
+                <div className="space-y-10 max-w-4xl px-4 w-full">
                   <div className="space-y-6 text-center">
                     <div>
                         <h2 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-blue-600 mb-4 tracking-tight">
@@ -693,7 +703,7 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
                     </div>
                   </div>
                   
-                  <div className="max-w-2xl mx-auto space-y-8">
+                  <div className="max-w-4xl mx-auto space-y-8">
                     {/* Custom Dropdown */}
                     <div className="relative" ref={dropdownRef}>
                       <button
@@ -767,9 +777,13 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
                           }
                             disabled={!selectedCategory || isLoading || !canSend(userId)}
                           rows={1}
-                          className="w-full px-8 py-6 pr-16 bg-white border-2 border-gray-100 rounded-[2rem] resize-none focus:outline-none focus:ring-4 focus:ring-cyan-500/10 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-gray-800 placeholder-gray-400 shadow-lg hover:shadow-xl hover:border-cyan-200 text-lg scrollbar-none"
+                          className="w-full px-8 py-6 pr-16 pb-12 bg-white border-2 border-gray-100 rounded-[2rem] resize-none focus:outline-none focus:ring-4 focus:ring-cyan-500/10 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-gray-800 placeholder-gray-400 shadow-lg hover:shadow-xl hover:border-cyan-200 text-lg scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
                           style={{ minHeight: '80px', maxHeight: '200px' }}
                         />
+                        <div className="absolute left-8 bottom-4 text-xs font-medium text-gray-400 pointer-events-none select-none flex items-center gap-1">
+                          <span>Limit Harian:</span>
+                          <span className={`${quotaCount >= DAILY_LIMIT ? 'text-red-500' : 'text-cyan-600'}`}>{quotaCount}/{DAILY_LIMIT}</span>
+                        </div>
                         <div className="absolute right-4 bottom-4">
                           <button
                             type="submit"
@@ -913,7 +927,11 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
                     <textarea
                       ref={textareaRef}
                       value={input}
-                      onChange={(e) => setInput(e.target.value)}
+                      onChange={(e) => {
+                        setInput(e.target.value);
+                        e.target.style.height = 'auto';
+                        e.target.style.height = `${Math.min(e.target.scrollHeight, 180)}px`;
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
@@ -929,9 +947,13 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
                       }
                       disabled={!selectedCategory || isLoading || !canSend(userId)}
                       rows={1}
-                      className="w-full px-5 py-4 pr-12 bg-white border border-gray-200 rounded-2xl resize-none focus:outline-none focus:ring-4 focus:ring-cyan-500/10 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-gray-800 placeholder-gray-400 shadow-sm hover:shadow-md hover:border-cyan-200"
-                      style={{ minHeight: '60px', maxHeight: '180px' }}
+                      className="w-full px-5 py-4 pr-12 pb-8 bg-white border border-gray-200 rounded-2xl resize-none focus:outline-none focus:ring-4 focus:ring-cyan-500/10 focus:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-gray-800 placeholder-gray-400 shadow-sm hover:shadow-md hover:border-cyan-200"
+                      style={{ minHeight: '80px', maxHeight: '180px' }}
                     />
+                    <div className="absolute left-5 bottom-2 text-[10px] font-medium text-gray-400 pointer-events-none select-none flex items-center gap-1">
+                      <span>Limit Harian:</span>
+                      <span className={`${quotaCount >= DAILY_LIMIT ? 'text-red-500' : 'text-cyan-600'}`}>{quotaCount}/{DAILY_LIMIT}</span>
+                    </div>
                   </div>
                 </div>
 

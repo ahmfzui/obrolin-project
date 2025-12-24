@@ -43,14 +43,22 @@ export default function ChatSidebar({
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch('/api/documents/categories');
+        // Fetch from RAG (Qdrant) for Sidebar Filter
+        const res = await fetch('/api/documents/categories?source=rag');
         if (res.ok) {
           const data = await res.json();
           if (data.categories && Array.isArray(data.categories)) {
-            const dynamicCats = data.categories.map((c: string) => ({ 
-              id: c, 
-              name: c.replace(/([a-z])([A-Z])/g, '$1 $2') 
-            }));
+            const dynamicCats = data.categories.map((c: any) => {
+              if (typeof c === 'string') {
+                 const spaced = c.replace(/([a-z])([A-Z])/g, '$1 $2');
+                 return { 
+                   id: c, 
+                   name: spaced.charAt(0).toUpperCase() + spaced.slice(1)
+                 };
+              }
+              return c;
+            });
+            // Always keep 'All' as the first option for filtering history
             setCategories([{ id: 'all', name: 'All' }, ...dynamicCats]);
           }
         }
@@ -291,7 +299,7 @@ export default function ChatSidebar({
                 <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-2">Today</h3>
                 <div className="space-y-1">
                   {groupedChats.today.map(chat => (
-                    <ChatItem key={chat.Chat_id} chat={chat} onSelect={onSelectChat} onDelete={(e) => handleDeleteChat(e, chat)} />
+                    <ChatItem key={chat.Chat_id} chat={chat} onSelect={onSelectChat} onDelete={(e) => handleDeleteChat(e, chat)} categories={categories} />
                   ))}
                 </div>
               </div>
@@ -302,7 +310,7 @@ export default function ChatSidebar({
                 <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-2">Yesterday</h3>
                 <div className="space-y-1">
                   {groupedChats.yesterday.map(chat => (
-                    <ChatItem key={chat.Chat_id} chat={chat} onSelect={onSelectChat} onDelete={(e) => handleDeleteChat(e, chat)} />
+                    <ChatItem key={chat.Chat_id} chat={chat} onSelect={onSelectChat} onDelete={(e) => handleDeleteChat(e, chat)} categories={categories} />
                   ))}
                 </div>
               </div>
@@ -313,7 +321,7 @@ export default function ChatSidebar({
                 <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-2">Previous 7 Days</h3>
                 <div className="space-y-1">
                   {groupedChats.week.map(chat => (
-                    <ChatItem key={chat.Chat_id} chat={chat} onSelect={onSelectChat} onDelete={(e) => handleDeleteChat(e, chat)} />
+                    <ChatItem key={chat.Chat_id} chat={chat} onSelect={onSelectChat} onDelete={(e) => handleDeleteChat(e, chat)} categories={categories} />
                   ))}
                 </div>
               </div>
@@ -324,7 +332,7 @@ export default function ChatSidebar({
                 <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-2">Older</h3>
                 <div className="space-y-1">
                   {groupedChats.older.map(chat => (
-                    <ChatItem key={chat.Chat_id} chat={chat} onSelect={onSelectChat} onDelete={(e) => handleDeleteChat(e, chat)} />
+                    <ChatItem key={chat.Chat_id} chat={chat} onSelect={onSelectChat} onDelete={(e) => handleDeleteChat(e, chat)} categories={categories} />
                   ))}
                 </div>
               </div>
@@ -362,7 +370,8 @@ export default function ChatSidebar({
   );
 }
 
-function ChatItem({ chat, onSelect, onDelete }: { chat: ChatHistoryItem; onSelect?: (chat: ChatHistoryItem) => void; onDelete?: (e: React.MouseEvent) => void }) {
+function ChatItem({ chat, onSelect, onDelete, categories }: { chat: ChatHistoryItem; onSelect?: (chat: ChatHistoryItem) => void; onDelete?: (e: React.MouseEvent) => void; categories?: { id: string; name: string }[] }) {
+  const categoryName = categories?.find(c => c.id === chat.Category)?.name || chat.Category.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, str => str.toUpperCase());
   return (
     <button
       onClick={() => onSelect?.(chat)}
@@ -383,7 +392,7 @@ function ChatItem({ chat, onSelect, onDelete }: { chat: ChatHistoryItem; onSelec
           {new Date(chat.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
         </span>
         <span className="text-xs font-semibold px-2 py-0.5 bg-cyan-50 text-cyan-600 rounded-md border border-cyan-100">
-          {chat.Category.replace(/([a-z])([A-Z])/g, '$1 $2')}
+          {categoryName}
         </span>
       </div>
       

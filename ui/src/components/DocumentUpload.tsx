@@ -3,14 +3,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 
-const defaultCategories = [
-  { id: 'Capstone', name: 'Capstone' },
-  { id: 'KP', name: 'KP (Kerja Praktek)' },
-  { id: 'MBKM', name: 'MBKM' },
-  { id: 'Registrasi MK', name: 'Registrasi MK' },
-  { id: 'General', name: 'General' },
-];
-
 const formatCategoryName = (name: string) => {
   return name.replace(/([a-z])([A-Z])/g, '$1 $2');
 };
@@ -20,14 +12,14 @@ export default function DocumentUpload() {
   
   // Upload State
   const [file, setFile] = useState<File | null>(null);
-  const [category, setCategory] = useState<string>('Capstone');
-  const [categories, setCategories] = useState(defaultCategories);
+  const [category, setCategory] = useState<string>('');
+  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>('');
   const [uploadStage, setUploadStage] = useState<string>('');
   const [uploadProgressPercent, setUploadProgressPercent] = useState<number>(0);
   const [uploadResult, setUploadResult] = useState<any>(null);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState('');
   
   // List State
   const [documents, setDocuments] = useState<any[]>([]);
@@ -42,19 +34,17 @@ export default function DocumentUpload() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch('/api/documents/categories');
+        // Fetch from DB for Admin Upload
+        const res = await fetch('/api/documents/categories?source=db');
         if (res.ok) {
           const data = await res.json();
+          // Expecting { categories: [{ id: 'val', name: 'Name' }, ...] }
           const fetchedCategories = data.categories || [];
           
-          const mergedCategories = [...defaultCategories];
-          fetchedCategories.forEach((catName: string) => {
-            if (!mergedCategories.find(c => c.id === catName)) {
-              mergedCategories.push({ id: catName, name: formatCategoryName(catName) });
-            }
-          });
-          
-          setCategories(mergedCategories);
+          setCategories(fetchedCategories);
+          if (fetchedCategories.length > 0) {
+            setCategory(fetchedCategories[0].id);
+          }
         }
       } catch (e) {
         console.error('Failed to fetch categories:', e);
@@ -86,7 +76,8 @@ export default function DocumentUpload() {
   }, [filterCategory]);
 
   const handleDeleteDocument = async (filename: string, category: string) => {
-    if (!confirm(`Yakin ingin menghapus dokumen "${filename}"?`)) {
+    const displayCategory = getCategoryDisplay(category);
+    if (!confirm(`Yakin ingin menghapus dokumen "${filename}" dari kategori "${displayCategory}"?`)) {
       return;
     }
 
@@ -240,6 +231,13 @@ export default function DocumentUpload() {
     return matchesSearch;
   });
 
+  const getCategoryDisplay = (catId: string) => {
+    if (!catId) return 'No category';
+    const match = categories.find(c => c.id === catId);
+    if (match) return match.name;
+    return formatCategoryName(catId);
+  };
+
   const totalChunks = documents.reduce((acc, doc) => acc + (doc.chunk_count || 0), 0);
 
   if (!session) {
@@ -284,7 +282,7 @@ export default function DocumentUpload() {
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="block w-full pl-3 pr-10 py-2.5 text-base border border-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm rounded-xl bg-gray-50"
+              className="block w-full pl-3 pr-10 py-2.5 text-base border border-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm rounded-xl bg-white text-gray-900 shadow-sm"
             >
               <option value="">Semua Kategori</option>
               {categories.map((cat) => (
@@ -401,11 +399,11 @@ export default function DocumentUpload() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                          {formatCategoryName(category)}
-                        </span>
-                      </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                              {getCategoryDisplay(category)}
+                            </span>
+                          </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {doc.chunk_count || '-'}
                       </td>

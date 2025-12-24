@@ -26,6 +26,11 @@ export default function UploadPage() {
                 <p className="text-sm text-gray-600 mt-1">Kelola dokumen knowledge base untuk RAG system</p>
               </div>
             </div>
+            <div className="flex justify-end">
+              <a href="/admin/categories" className="text-sm text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-1">
+                Manage Categories &rarr;
+              </a>
+            </div>
           </div>
 
           <DocumentUpload />

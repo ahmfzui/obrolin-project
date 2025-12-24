@@ -32,6 +32,14 @@ export async function GET(request: Request) {
       take: limit,
     });
 
+    // Total interactions (sum of message_count)
+    const totalInteractionsAgg = await db.chat.aggregate({
+      _sum: {
+        message_count: true,
+      },
+    });
+    const totalInteractions = totalInteractionsAgg._sum.message_count || 0;
+
     // Recent prompts (latest chat rows across users)
     // include related user name where possible
     const recentPrompts = await db.chat.findMany({
@@ -54,6 +62,7 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json({
+      totalInteractions,
       categories: topCategories.map((c: any) => ({ category: c.Category || 'Uncategorized', count: c._count._all })),
       questions: (topQuestions || [])
         .filter((q: any) => q.Question && q.Question.toString().trim().length > 0)

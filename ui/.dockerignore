@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+.pnpm-store/
+.yarn/
+.yarn-cache/
+
+# build outputs
+.next/
+dist/
+out/
+build/
+.cache/
+.turbo/
+.vercel/
+
+# git
+.git/
+.gitignore
+
+# env
+.env
+.env.*
+!.env.example
+
+# logs
+npm-debug.log
+yarn-error.log
+
+# misc
+Dockerfile
+.dockerignore
