@@ -179,8 +179,10 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
       return;
     }
 
+    let currentConversationId = conversationId;
+
     // If we don't yet have a conversationId, create one now.
-    if (!conversationId) {
+    if (!currentConversationId) {
       try {
         setIsInitializing(true);
         const startRes = await fetch('/api/chat/start', {
@@ -200,7 +202,8 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
           throw new Error('Server did not return conversation_id');
         }
 
-        setConversationId(startData.conversation_id);
+        currentConversationId = startData.conversation_id;
+        setConversationId(currentConversationId);
       } catch (err: any) {
         setError(err?.message || 'Failed to start conversation');
         setIsInitializing(false);
@@ -248,7 +251,7 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
         body: JSON.stringify({
           question: userMessage.text,
           category: selectedCategory,
-          conversation_id: conversationId,
+          conversation_id: currentConversationId,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -489,6 +492,26 @@ const ModernChatWindow = forwardRef(({ selectedChat, isSidebarOpen, onToggleSide
               alt="Obrolin Logo"
               fill
               className="object-contain object-left"
+              priority
+            />
+          </div>
+          {/* Sisfo Logo */}
+          <div className="relative h-10 w-10 opacity-80 hover:opacity-100 transition-opacity">
+            <Image
+              src="/sisfo.jpeg"
+              alt="Sisfo Logo"
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
+          {/* FRI Logo */}
+          <div className="relative h-10 w-32 opacity-80 hover:opacity-100 transition-opacity">
+            <Image
+              src="/fri.png"
+              alt="FRI Logo"
+              fill
+              className="object-contain"
               priority
             />
           </div>

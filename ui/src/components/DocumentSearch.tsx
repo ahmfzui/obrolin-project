@@ -12,6 +12,10 @@ const categories = [
   { id: 'General', name: 'General' },
 ];
 
+const formatCategoryName = (name: string) => {
+  return name.replace(/([a-z])([A-Z])/g, '$1 $2');
+};
+
 interface SearchResult {
   text: string;
   filename: string;
@@ -162,7 +166,7 @@ export default function DocumentSearch() {
                       <h4 className="font-semibold text-gray-800">{result.filename}</h4>
                       <div className="flex gap-2 mt-1">
                         <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                          {result.category}
+                          {formatCategoryName(result.category)}
                         </span>
                         <span className="inline-block px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
                           Score: {(result.score * 100).toFixed(1)}%

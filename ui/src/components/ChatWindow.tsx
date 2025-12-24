@@ -49,8 +49,10 @@ export default function ChatWindow() {
       return;
     }
 
+    let currentConversationId = conversationId;
+
     // Create conversation on first send if needed
-    if (!conversationId) {
+    if (!currentConversationId) {
       try {
         setIsInitializing(true);
         const startRes = await fetch('/api/chat/start', {
@@ -66,7 +68,8 @@ export default function ChatWindow() {
         }
         const startData = await startRes.json();
         if (!startData?.conversation_id) throw new Error('Server did not return conversation_id');
-        setConversationId(startData.conversation_id);
+        currentConversationId = startData.conversation_id;
+        setConversationId(currentConversationId);
       } catch (err: any) {
         setError(err?.message || 'Failed to start conversation');
         setIsInitializing(false);
@@ -108,7 +111,7 @@ export default function ChatWindow() {
         body: JSON.stringify({
           question: userMessage.text,
           category: selectedCategory,
-          conversation_id: conversationId,
+          conversation_id: currentConversationId,
         }),
       });
 

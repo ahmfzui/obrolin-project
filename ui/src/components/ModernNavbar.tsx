@@ -16,13 +16,33 @@ export default function ModernNavbar() {
           {/* Left: Logo/Brand - only show for non-admin */}
           <div className="flex items-center">
             {session?.user?.role !== 'admin' && (
-              <Link href={session ? "/chat" : "/"} className="flex items-center gap-2">
+              <Link href={session ? "/chat" : "/"} className="flex items-center gap-4">
                 <div className="relative h-12 w-32 flex items-center">
                   <Image
                     src="https://i.ibb.co.com/zHhWc18h/Obrol-In.png"
                     alt="Obrolin Logo"
                     fill
                     className="object-contain object-left"
+                    priority
+                  />
+                </div>
+                {/* Sisfo Logo */}
+                <div className="relative h-12 w-12 flex items-center">
+                  <Image
+                    src="/sisfo.jpeg"
+                    alt="Sisfo Logo"
+                    fill
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+                {/* FRI Logo */}
+                <div className="relative h-12 w-36 flex items-center">
+                  <Image
+                    src="/fri.png"
+                    alt="FRI Logo"
+                    fill
+                    className="object-contain"
                     priority
                   />
                 </div>
