@@ -3,18 +3,11 @@
 import { useEffect, useState } from 'react';
 import ModernNavbar from '@/components/ModernNavbar';
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell,
-  AreaChart,
-  Area
+  Cell
 } from 'recharts';
 import { 
   Activity, 
@@ -22,7 +15,6 @@ import {
   MessageSquare, 
   Star, 
   TrendingUp, 
-  Calendar,
   PieChart as PieChartIcon
 } from 'lucide-react';
 
@@ -40,7 +32,6 @@ export default function AdminAnalyticsPage() {
   const [feedbackCount, setFeedbackCount] = useState<number>(0);
   
   // Processed Data for Charts
-  const [activityData, setActivityData] = useState<any[]>([]);
   const [totalInteractions, setTotalInteractions] = useState(0);
   const [activeUsers, setActiveUsers] = useState(0);
 
@@ -61,31 +52,6 @@ export default function AdminAnalyticsPage() {
         // Calculate Active Users (Unique User IDs or Names)
         const uniqueUsers = new Set(recent.map((r: Recent) => r.userId || r.userName).filter(Boolean));
         setActiveUsers(uniqueUsers.size);
-
-        // Process Activity Data (Group by Date/Hour)
-        // For simplicity, let's group by Date for the last 7 days or just by available dates
-        const activityMap = new Map();
-        recent.forEach((r: Recent) => {
-          if (r.created_at) {
-            const date = new Date(r.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-            activityMap.set(date, (activityMap.get(date) || 0) + 1);
-          }
-        });
-        
-        // Convert to array and reverse to show chronological order if API returns newest first
-        let activityArray = Array.from(activityMap.entries()).map(([name, count]) => ({ name, count })).reverse();
-        
-        // Fix for AreaChart: If only 1 data point, add a dummy previous point to make the chart render a line/area
-        if (activityArray.length === 1) {
-          const singleDate = activityArray[0].name;
-          // Try to parse date or just add "Previous"
-          activityArray.unshift({ name: '', count: 0 });
-        } else if (activityArray.length === 0) {
-           // Mock data for empty state
-           activityArray = [{name: 'No Data', count: 0}];
-        }
-
-        setActivityData(activityArray);
       })
       .catch((e) => setError(e.message || 'Failed to load'))
       .finally(() => setLoading(false));
@@ -176,52 +142,6 @@ export default function AdminAnalyticsPage() {
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Activity Chart */}
-              <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-gray-400" />
-                    Activity Overview
-                  </h3>
-                </div>
-                <div className="h-[300px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={activityData}>
-                      <defs>
-                        <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#0891b2" stopOpacity={0.1}/>
-                          <stop offset="95%" stopColor="#0891b2" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                      <XAxis 
-                        dataKey="name" 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{fill: '#9ca3af', fontSize: 12}} 
-                        dy={10}
-                      />
-                      <YAxis 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{fill: '#9ca3af', fontSize: 12}} 
-                      />
-                      <Tooltip 
-                        contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="count" 
-                        stroke="#0891b2" 
-                        strokeWidth={3}
-                        fillOpacity={1} 
-                        fill="url(#colorCount)" 
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
               {/* Category Distribution */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                 <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
@@ -269,51 +189,51 @@ export default function AdminAnalyticsPage() {
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* Recent Activity Table */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="p-6 border-b border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50/50">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prompt</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                      <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {questions.slice(0, 10).map((q, i) => (
-                      <tr key={i} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-100 to-blue-100 flex items-center justify-center text-cyan-700 font-bold text-xs">
-                              {(q.userName || 'U').charAt(0).toUpperCase()}
-                            </div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {q.userName || `User ${q.userId || 'Unknown'}`}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <p className="text-sm text-gray-600 line-clamp-1 max-w-md">{q.question}</p>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                            {q.category || 'General'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
-                          {q.created_at ? new Date(q.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-'}
-                        </td>
+              {/* Recent Activity Table */}
+              <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-6 border-b border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50/50">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prompt</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                        <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {questions.slice(0, 10).map((q, i) => (
+                        <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-100 to-blue-100 flex items-center justify-center text-cyan-700 font-bold text-xs">
+                                {(q.userName || 'U').charAt(0).toUpperCase()}
+                              </div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {q.userName || `User ${q.userId || 'Unknown'}`}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <p className="text-sm text-gray-600 line-clamp-1 max-w-md">{q.question}</p>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                              {q.category || 'General'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
+                            {q.created_at ? new Date(q.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
