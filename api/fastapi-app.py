@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, File, UploadFile
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -403,7 +403,7 @@ def get_conversation_history_endpoint(request: ConversationID):
 @app.post("/documents/upload/", response_model=DocumentResponse)
 async def upload_document(
     file: UploadFile = File(...),
-    category: str = "General"
+    category: str = Form("General")
 ):
     """Upload and process document to vector database"""
     
@@ -440,7 +440,7 @@ async def upload_document(
 @app.post("/documents/upload-stream")
 async def upload_document_stream(
     file: UploadFile = File(...),
-    category: str = "General"
+    category: str = Form("General")
 ):
     """Upload and process document with real-time progress streaming"""
     

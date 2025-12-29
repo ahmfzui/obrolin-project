@@ -30,10 +30,18 @@ model Chat {
   conversation_id String?
   created_at DateTime @default(now())
   Feedback   Int?
+  message_count Int @default(1)
 
 
   // --- DAN INI DIRUBAH (RELASINYA) ---
   userId Int // Sebelumnya: User_id
   user   User    @relation(fields: [userId], references: [id]) // Sebelumnya: ...fields: [User_id], references: [User_id]
   // ----------------------------------
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  value     String   @unique
+  createdAt DateTime @default(now())
 }

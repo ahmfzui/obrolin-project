@@ -13,32 +13,50 @@ export default function ModernNavbar() {
     <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-16">
-          {/* Left: Logo/Brand - only show for non-admin */}
+          {/* Left: Logo/Brand */}
           <div className="flex items-center">
-            {session?.user?.role !== 'admin' && (
-              <Link href={session ? "/chat" : "/"} className="flex items-center gap-2">
-                <div className="relative h-12 w-32 flex items-center">
-                  <Image
-                    src="https://i.ibb.co.com/zHhWc18h/Obrol-In.png"
-                    alt="Obrolin Logo"
-                    fill
-                    className="object-contain object-left"
-                    priority
-                  />
-                </div>
-              </Link>
-            )}
+            <Link href={session?.user?.role === 'admin' ? "/admin/analytics" : (session ? "/chat" : "/")} className="flex items-center gap-4">
+              <div className="relative h-12 w-32 flex items-center">
+                <Image
+                  src="https://i.ibb.co.com/zHhWc18h/Obrol-In.png"
+                  alt="Obrolin Logo"
+                  fill
+                  className="object-contain object-left"
+                  priority
+                />
+              </div>
+              {/* Sisfo Logo */}
+              <div className="relative h-12 w-12 flex items-center">
+                <Image
+                  src="/sisfo.jpeg"
+                  alt="Sisfo Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              {/* FRI Logo */}
+              <div className="relative h-12 w-36 flex items-center">
+                <Image
+                  src="/fri.png"
+                  alt="FRI Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+            </Link>
           </div>
 
           {/* Center: Admin Navigation */}
           {session?.user?.role === 'admin' && (
-            <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-1 bg-gray-100/50 p-1 rounded-xl border border-gray-200/50">
               <Link
                 href="/admin/analytics"
                 className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                   pathname === '/admin/analytics'
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md'
-                    : 'text-gray-700 hover:bg-gradient-to-r hover:from-cyan-50 hover:to-blue-50 border border-transparent hover:border-cyan-200'
+                    ? 'bg-white text-cyan-700 shadow-sm ring-1 ring-black/5'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
                 }`}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -50,8 +68,8 @@ export default function ModernNavbar() {
                 href="/documents/upload"
                 className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                   pathname === '/documents/upload'
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md'
-                    : 'text-gray-700 hover:bg-gradient-to-r hover:from-cyan-50 hover:to-blue-50 border border-transparent hover:border-cyan-200'
+                    ? 'bg-white text-cyan-700 shadow-sm ring-1 ring-black/5'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
                 }`}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

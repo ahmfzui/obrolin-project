@@ -97,11 +97,23 @@ export async function POST(req: NextRequest) {
             if (existing) {
               await db.chat.update({ 
                 where: { Chat_id: existing.Chat_id }, 
-                data: { Category: category, Question: question, Answer: accumulatedAnswer } as any
+                data: { 
+                  Category: category, 
+                  Question: question, 
+                  Answer: accumulatedAnswer,
+                  message_count: { increment: 1 }
+                } as any
               });
             } else {
               await db.chat.create({ 
-                data: { userId, Category: category, Question: question, Answer: accumulatedAnswer, conversation_id: convId } as any
+                data: { 
+                  userId, 
+                  Category: category, 
+                  Question: question, 
+                  Answer: accumulatedAnswer, 
+                  conversation_id: convId,
+                  message_count: 1
+                } as any
               });
             }
           } catch (err) {

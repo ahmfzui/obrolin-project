@@ -22,9 +22,14 @@ export default function UploadPage() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">Upload Document</h1>
-                <p className="text-sm text-gray-600 mt-1">Upload dokumen untuk indexing RAG system</p>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">Manajemen Dokumen</h1>
+                <p className="text-sm text-gray-600 mt-1">Kelola dokumen knowledge base untuk RAG system</p>
               </div>
+            </div>
+            <div className="flex justify-end">
+              <a href="/admin/categories" className="text-sm text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-1">
+                Manage Categories &rarr;
+              </a>
             </div>
           </div>
 

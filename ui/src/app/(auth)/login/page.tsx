@@ -1,7 +1,7 @@
 // src/app/(auth)/login/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signIn, getSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,7 +27,20 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError('Email atau password salah. Coba lagi.');
+        // show server-side error when available (e.g. cooldown message from rate-limiter)
+        const msg = typeof result.error === 'string' && result.error.length > 0
+          ? result.error
+          : 'Email atau password salah. Coba lagi.';
+        setError(msg);
+        // detect cooldown message like: "Terlalu banyak percobaan login. Coba lagi dalam X detik."
+        const m = msg.match(/(\d+)\s*detik/);
+        if (m) {
+          const secs = parseInt(m[1], 10) || 10;
+          setCooldown(secs);
+        } else if (/Terlalu banyak percobaan/i.test(msg) || /cooldown/i.test(msg)) {
+          // fallback to default cooldown
+          setCooldown(10);
+        }
       } else {
         // detect if user is admin and redirect accordingly
         const sess = await getSession();
@@ -44,6 +58,21 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  // countdown effect for cooldown state
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setInterval(() => {
+      setCooldown((c) => {
+        if (c <= 1) {
+          clearInterval(id);
+          return 0;
+        }
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [cooldown]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 via-white to-cyan-50 px-4">
@@ -176,7 +205,7 @@ export default function LoginPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || cooldown > 0}
               className="w-full rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 px-4 py-3.5 font-semibold text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
             >
               {loading ? (
@@ -201,6 +230,10 @@ export default function LoginPage() {
                     />
                   </svg>
                   Logging in...
+                </span>
+              ) : cooldown > 0 ? (
+                <span className="flex items-center justify-center gap-2">
+                  Tunggu {cooldown} detik
                 </span>
               ) : (
                 <span className="flex items-center justify-center gap-2">
