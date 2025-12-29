@@ -19,7 +19,7 @@ ARG DATABASE_URL="postgresql://postgres:zoSsGafGpNWpctpinOauKWPcbndhXVLN@postgre
 ENV DATABASE_URL=${DATABASE_URL}
 
 # Install dependencies (this will run prisma generate via postinstall)
-RUN npm ci
+RUN npm install
 
 # Rebuild the source code only when needed
 FROM base AS builder
