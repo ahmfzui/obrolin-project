@@ -14,6 +14,10 @@ COPY package.json package-lock.json* ./
 # Copy prisma schema BEFORE running npm ci (needed for postinstall hook)
 COPY prisma ./prisma
 
+# Set dummy DATABASE_URL for prisma generate during build
+ARG DATABASE_URL="postgresql://postgres:zoSsGafGpNWpctpinOauKWPcbndhXVLN@postgres.railway.internal:5432/railway"
+ENV DATABASE_URL=${DATABASE_URL}
+
 # Install dependencies (this will run prisma generate via postinstall)
 RUN npm ci
 
@@ -23,6 +27,10 @@ WORKDIR /app
 
 # Install openssl for Prisma
 RUN apk add --no-cache openssl libc6-compat
+
+# Set dummy DATABASE_URL for build stage
+ARG DATABASE_URL="postgresql://postgres:zoSsGafGpNWpctpinOauKWPcbndhXVLN@postgres.railway.internal:5432/railway"
+ENV DATABASE_URL=${DATABASE_URL}
 
 # Copy node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
@@ -71,4 +79,5 @@ USER nextjs
 EXPOSE 3000
 
 # Run migrations and start server
+# Real DATABASE_URL will be injected at runtime from Railway environment variables
 CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
