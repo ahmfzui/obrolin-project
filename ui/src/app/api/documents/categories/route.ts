@@ -58,10 +58,7 @@ export async function GET(request: Request) {
         });
         // Return objects with id (value) and name
         return NextResponse.json({
-          categories: (categories as CategoryItem[]).map((c: CategoryItem) => ({
-            id: c.value,
-            name: c.name,
-          })),
+          categories: categories.map((c) => ({ id: c.value, name: c.name })),
         });
       } catch (e) {
         console.error('Failed to fetch categories from DB', e);
