@@ -57,8 +57,11 @@ export async function GET(request: Request) {
           orderBy: { name: 'asc' }
         });
         // Return objects with id (value) and name
-        return NextResponse.json({ 
-          categories: categories.map(c => ({ id: c.value, name: c.name })) 
+        return NextResponse.json({
+          categories: (categories as CategoryItem[]).map((c: CategoryItem) => ({
+            id: c.value,
+            name: c.name,
+          })),
         });
       } catch (e) {
         console.error('Failed to fetch categories from DB', e);
@@ -165,3 +168,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+type CategoryItem = {
+  value: string;
+  name: string;
+};
