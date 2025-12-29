@@ -80,4 +80,4 @@ EXPOSE 3000
 
 # Run migrations and start server
 # Real DATABASE_URL will be injected at runtime from Railway environment variables
-CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
+CMD ["sh", "-c", "node ./node_modules/prisma/build/index.js migrate deploy && node server.js"]
