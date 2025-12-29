@@ -15,7 +15,7 @@ COPY package.json package-lock.json* ./
 COPY prisma ./prisma
 
 # Set dummy DATABASE_URL for prisma generate during build
-ARG DATABASE_URL="postgresql://postgres:zoSsGafGpNWpctpinOauKWPcbndhXVLN@postgres.railway.internal:5432/railway"
+ARG DATABASE_URL="postgresql://postgres:fcQigroYHMmjQwCPXBSHbzpnbyhlpiKm@postgres-b_7n.railway.internal:5432/railway"
 ENV DATABASE_URL=${DATABASE_URL}
 
 # Install dependencies (this will run prisma generate via postinstall)
@@ -29,7 +29,7 @@ WORKDIR /app
 RUN apk add --no-cache openssl libc6-compat
 
 # Set dummy DATABASE_URL for build stage
-ARG DATABASE_URL="postgresql://postgres:zoSsGafGpNWpctpinOauKWPcbndhXVLN@postgres.railway.internal:5432/railway"
+ARG DATABASE_URL="postgresql://postgres:fcQigroYHMmjQwCPXBSHbzpnbyhlpiKm@postgres-b_7n.railway.internal:5432/railway"
 ENV DATABASE_URL=${DATABASE_URL}
 
 # Copy node_modules from deps stage
