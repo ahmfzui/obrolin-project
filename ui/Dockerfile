@@ -74,6 +74,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
+# Bring full node_modules so Prisma CLI deps (effect, etc) exist at runtime
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 USER nextjs
 
 EXPOSE 3000
