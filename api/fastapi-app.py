@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, File, UploadFile, Form
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -16,6 +16,8 @@ load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB Limit
 
 app = FastAPI(
     title="Chatbot & Document Processing API",
@@ -252,6 +254,14 @@ def chat(input_payload: UserMessage):
 @app.post("/conversations/chat-stream/")
 async def chat_stream(input_payload: UserMessage):
     """Stream chat responses with progress updates"""
+    
+    # 1. Check Connectivity (Fail Fast for 503)
+    try:
+        document_pipeline.check_health()
+    except Exception as e:
+        logger.error(f"Service unavailable: {e}")
+        raise HTTPException(status_code=503, detail="Layanan database sedang tidak tersedia. Silakan coba beberapa saat lagi.")
+
     thread_id = input_payload.conversation_id
     
     if not check_conversation_exists(thread_id):
@@ -337,7 +347,12 @@ async def chat_stream(input_payload: UserMessage):
             
         except Exception as e:
             logger.error("Streaming error", exc_info=True)
-            yield f"data: {json.dumps({'stage': 'error', 'message': str(e), 'icon': '❌'})}\n\n"
+            error_msg = str(e)
+            # Graceful degradation for LLM Timeout/Errors
+            if "timeout" in error_msg.lower() or "connection" in error_msg.lower() or "rate limit" in error_msg.lower():
+                yield f"data: {json.dumps({'stage': 'error', 'message': 'Layanan sedang sibuk (Timeout/Busy). Silakan coba lagi nanti.', 'icon': '⏳'})}\n\n"
+            else:
+                yield f"data: {json.dumps({'stage': 'error', 'message': f'Terjadi kesalahan: {error_msg}', 'icon': '❌'})}\n\n"
     
     return StreamingResponse(
         generate_stream(),
@@ -413,6 +428,14 @@ async def upload_document(
     
     try:
         content = await file.read()
+        
+        # Validate File Size (Max 100MB)
+        if len(content) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File terlalu besar. Maksimal {MAX_FILE_SIZE // (1024*1024)}MB."
+            )
+
         logger.info(f"Processing document: {file.filename}, category: {category}")
         
         result = document_pipeline.process_document(content, file.filename, category)
