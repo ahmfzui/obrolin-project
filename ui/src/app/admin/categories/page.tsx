@@ -85,20 +85,20 @@ export default function CategoriesPage() {
     <div className="min-h-screen bg-white flex flex-col">
       <ModernNavbar />
 
-      <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto w-full">
-        <div className="flex items-center justify-between mb-8">
+      <main className="flex-1 py-4 sm:py-8 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
           <div>
-            <div className="flex items-center gap-4 mb-2">
+            <div className="flex items-center gap-2 sm:gap-4 mb-2">
               <Link href="/documents/upload" className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600">
                 <ArrowLeft className="w-5 h-5" />
               </Link>
-              <h1 className="text-2xl font-bold text-gray-900">Category Management</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Category Management</h1>
             </div>
-            <p className="text-gray-500 text-sm ml-11">Manage document categories for the system</p>
+            <p className="text-gray-500 text-xs sm:text-sm ml-9 sm:ml-11">Manage document categories for the system</p>
           </div>
           <button
             onClick={() => setIsAdding(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" />
             Add Category
@@ -106,35 +106,35 @@ export default function CategoriesPage() {
         </div>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
+          <div className="mb-4 p-3 sm:p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 text-sm">
             {error}
           </div>
         )}
 
         {isAdding && (
-          <div className="mb-6 p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">New Category</h3>
+          <div className="mb-4 sm:mb-6 p-4 sm:p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
+            <h3 className="text-base sm:text-lg font-semibold mb-4 text-gray-900">New Category</h3>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
               <input
                 type="text"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-900 text-sm sm:text-base"
                 placeholder="e.g. Machine Learning"
               />
               <p className="text-xs text-gray-500 mt-1">Value ID will be generated automatically.</p>
             </div>
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
               <button
                 onClick={() => setIsAdding(false)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAdd}
-                className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors"
+                className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors text-sm"
               >
                 Save Category
               </button>
@@ -146,26 +146,30 @@ export default function CategoriesPage() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="hidden sm:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={3} className="px-6 py-4 text-center text-gray-500">Loading...</td>
+                  <td colSpan={3} className="px-3 sm:px-6 py-4 text-center text-gray-500 text-sm">Loading...</td>
                 </tr>
               ) : categories.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-6 py-4 text-center text-gray-500">No categories found</td>
+                  <td colSpan={3} className="px-3 sm:px-6 py-4 text-center text-gray-500 text-sm">No categories found</td>
                 </tr>
               ) : (
                 categories.map((cat) => (
                   <tr key={cat.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{cat.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{cat.value}</td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                      <div className="text-sm font-medium text-gray-900">{cat.name}</div>
+                      {/* Show value on mobile below name */}
+                      <div className="sm:hidden text-xs text-gray-500 mt-0.5">{cat.value}</div>
+                    </td>
+                    <td className="hidden sm:table-cell px-3 sm:px-6 py-3 sm:py-4 text-sm text-gray-500">{cat.value}</td>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
                       <button
                         onClick={() => handleDelete(cat.id)}
                         className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors"

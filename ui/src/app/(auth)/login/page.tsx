@@ -75,19 +75,19 @@ export default function LoginPage() {
   }, [cooldown]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 via-white to-cyan-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 via-white to-cyan-50 px-4 py-6 sm:py-0">
       <div className="w-full max-w-md">
         <Link href="/" className="flex items-center text-sm text-gray-600 hover:text-cyan-600 mb-4 transition-colors w-fit">
           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
           Kembali ke Beranda
         </Link>
         {/* Card */}
-        <div className="rounded-2xl bg-white p-8 shadow-lg border border-gray-100">
+        <div className="rounded-xl sm:rounded-2xl bg-white p-5 sm:p-8 shadow-lg border border-gray-100">
           {/* Header */}
-          <div className="mb-8 text-center">
-            <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg group-hover:scale-110 transition-transform">
+          <div className="mb-6 sm:mb-8 text-center">
+            <div className="mx-auto mb-4 sm:mb-6 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg group-hover:scale-110 transition-transform">
               <svg
-                className="h-7 w-7 text-white"
+                className="h-6 w-6 sm:h-7 sm:w-7 text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -100,10 +100,10 @@ export default function LoginPage() {
                 />
               </svg>
             </div>
-            <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2">
               Welcome Back
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-600 text-sm sm:text-base">
               Login ke akun Obrolin kamu
             </p>
           </div>

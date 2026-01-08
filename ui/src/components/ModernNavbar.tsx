@@ -1,5 +1,6 @@
- 'use client';
+'use client';
 
+import { useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -8,15 +9,16 @@ import { usePathname } from 'next/navigation';
 export default function ModernNavbar() {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="flex items-center justify-between h-16">
+    <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm sticky top-0 z-40">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Left: Logo/Brand */}
           <div className="flex items-center">
-            <Link href={session?.user?.role === 'admin' ? "/admin/analytics" : (session ? "/chat" : "/")} className="flex items-center gap-4">
-              <div className="relative h-12 w-32 flex items-center">
+            <Link href={session?.user?.role === 'admin' ? "/admin/analytics" : (session ? "/chat" : "/")} className="flex items-center gap-2 sm:gap-4">
+              <div className="relative h-10 w-24 sm:h-12 sm:w-32 flex items-center">
                 <Image
                   src="https://i.ibb.co.com/zHhWc18h/Obrol-In.png"
                   alt="Obrolin Logo"
@@ -25,8 +27,8 @@ export default function ModernNavbar() {
                   priority
                 />
               </div>
-              {/* Sisfo Logo */}
-              <div className="relative h-12 w-12 flex items-center">
+              {/* Sisfo Logo - Hidden on mobile */}
+              <div className="hidden sm:flex relative h-10 w-10 sm:h-12 sm:w-12 items-center">
                 <Image
                   src="/sisfo.jpeg"
                   alt="Sisfo Logo"
@@ -35,8 +37,8 @@ export default function ModernNavbar() {
                   priority
                 />
               </div>
-              {/* FRI Logo */}
-              <div className="relative h-12 w-36 flex items-center">
+              {/* FRI Logo - Hidden on mobile */}
+              <div className="hidden md:flex relative h-10 w-28 sm:h-12 sm:w-36 items-center">
                 <Image
                   src="/fri.png"
                   alt="FRI Logo"
@@ -48,7 +50,7 @@ export default function ModernNavbar() {
             </Link>
           </div>
 
-          {/* Center: Admin Navigation */}
+          {/* Center: Admin Navigation - Desktop */}
           {session?.user?.role === 'admin' && (
             <div className="hidden md:flex items-center gap-1 bg-gray-100/50 p-1 rounded-xl border border-gray-200/50">
               <Link
@@ -81,33 +83,88 @@ export default function ModernNavbar() {
           )}
 
           {/* Right: User Menu */}
-          {session?.user && (
-            <div className="flex items-center gap-4">
-              {/* User Info */}
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
-                  <span className="text-sm font-bold text-white">
-                    {session.user.name?.charAt(0).toUpperCase()}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {session?.user && (
+              <>
+                {/* User Info - Simplified on mobile */}
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-md">
+                    <span className="text-xs sm:text-sm font-bold text-white">
+                      {session.user.name?.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <span className="hidden sm:inline text-sm font-semibold text-gray-700">
+                    {session.user.name}
                   </span>
                 </div>
-                <span className="text-sm font-semibold text-gray-700">
-                  {session.user.name}
-                </span>
-              </div>
 
-              {/* Sign Out Button - Always Visible */}
-              <button
-                onClick={() => signOut({ callbackUrl: '/login' })}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-all duration-200"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                Sign Out
-              </button>
-            </div>
-          )}
+                {/* Sign Out Button - Icon only on mobile */}
+                <button
+                  onClick={() => signOut({ callbackUrl: '/login' })}
+                  className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-all duration-200"
+                  title="Sign Out"
+                >
+                  <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  <span className="hidden sm:inline">Sign Out</span>
+                </button>
+
+                {/* Mobile Menu Button for Admin */}
+                {session?.user?.role === 'admin' && (
+                  <button
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      {isMobileMenuOpen ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                      )}
+                    </svg>
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
+
+        {/* Mobile Menu for Admin */}
+        {session?.user?.role === 'admin' && isMobileMenuOpen && (
+          <div className="md:hidden py-3 border-t border-gray-100 animate-in slide-in-from-top-2 duration-200">
+            <div className="flex flex-col gap-1">
+              <Link
+                href="/admin/analytics"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  pathname === '/admin/analytics'
+                    ? 'bg-cyan-50 text-cyan-700'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Dashboard
+              </Link>
+              <Link
+                href="/documents/upload"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  pathname === '/documents/upload'
+                    ? 'bg-cyan-50 text-cyan-700'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Upload Dokumen
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );
