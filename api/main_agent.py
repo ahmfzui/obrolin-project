@@ -78,7 +78,7 @@ class MainAgentGraph :
         tools = [document_retrieval_tool]
         self.tool_node = ToolNode(tools)
 
-        self.main_llm = ChatOpenAI(model_name = 'gpt-4.1-mini').bind_tools(tools)
+        self.main_llm = ChatOpenAI(model_name = 'gpt-4.1-mini',verbose=True).bind_tools(tools)
         self.graph = self._build_graph()
 
     async def main_agent(self, state: MainState) -> str : 
