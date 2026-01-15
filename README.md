@@ -1,3 +1,3 @@
-tinggal copas ini ke terminal aja:
+Obrol.in Project 
 
-> docker compose up -d --build
+We will update the readme soon! :)

@@ -166,11 +166,11 @@ export default function ChatSidebar({
   const groupedChats = groupChatsByDate(filteredHistory);
 
   return (
-    <div className="w-80 bg-gray-50/80 border-r border-gray-200 flex flex-col h-full shadow-xl z-20 backdrop-blur-sm">
+    <div className="w-full sm:w-80 bg-gray-50/80 border-r border-gray-200 flex flex-col h-full shadow-xl z-20 backdrop-blur-sm">
       {/* Header with Logo */}
-      <div className="p-6 border-b border-gray-200/50 bg-gray-50/50">
-        <div className="flex items-center justify-between mb-6">
-          <div className="relative h-8 w-28">
+      <div className="p-4 sm:p-6 border-b border-gray-200/50 bg-gray-50/50">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <div className="relative h-7 w-24 sm:h-8 sm:w-28">
             <Image
               src="/logotanpaobrolin.png"
               alt="Obrolin Logo"
@@ -181,11 +181,17 @@ export default function ChatSidebar({
           </div>
           <button
             onClick={onToggle}
-            className="p-2 hover:bg-gray-200/50 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+            className="p-2 hover:bg-gray-200/50 rounded-lg text-gray-400 hover:text-gray-600 transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-cyan-500/20 active:scale-95"
             title="Collapse sidebar"
+            aria-label="Close sidebar"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {/* Desktop: Collapse Icon */}
+            <svg className="hidden sm:block w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            </svg>
+            {/* Mobile: Close Icon (X) */}
+            <svg className="sm:hidden w-6 h-6 border-2 border-gray-300 rounded-full p-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
@@ -209,16 +215,16 @@ export default function ChatSidebar({
       </div>
 
       {/* Search & Filter */}
-      <div className="px-4 py-3 space-y-3 bg-gray-50/50 border-b border-gray-100">
+      <div className="px-3 sm:px-4 py-2 sm:py-3 space-y-2 sm:space-y-3 bg-gray-50/50 border-b border-gray-100">
         <div className="relative">
           <input
             type="text"
             placeholder="Search history..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 pl-10 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
+            className="w-full px-3 sm:px-4 py-2 pl-9 sm:pl-10 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
           />
-          <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4 text-gray-400 absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
@@ -274,7 +280,7 @@ export default function ChatSidebar({
       </div>
 
       {/* Chat List */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-6 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
+      <div className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-4 sm:space-y-6 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3 opacity-60">
             <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
@@ -342,16 +348,16 @@ export default function ChatSidebar({
       </div>
 
       {/* User Profile & Sign Out (Bottom) */}
-      <div className="p-4 border-t border-gray-100 bg-gray-50/50">
-        <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-white hover:shadow-sm transition-all duration-200 group">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-sm text-white font-bold text-sm shrink-0">
+      <div className="p-3 sm:p-4 border-t border-gray-100 bg-gray-50/50">
+        <div className="flex items-center gap-2 sm:gap-3 p-2 rounded-xl hover:bg-white hover:shadow-sm transition-all duration-200 group">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-sm text-white font-bold text-xs sm:text-sm shrink-0">
             {session?.user?.name?.charAt(0).toUpperCase() || 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">
+            <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">
               {session?.user?.name || 'User'}
             </p>
-            <p className="text-xs text-gray-500 truncate">
+            <p className="text-[10px] sm:text-xs text-gray-500 truncate">
               {session?.user?.email || ''}
             </p>
           </div>
@@ -360,7 +366,7 @@ export default function ChatSidebar({
             className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
             title="Sign Out"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
           </button>
@@ -399,7 +405,7 @@ function ChatItem({ chat, onSelect, onDelete, categories }: { chat: ChatHistoryI
       {/* Delete Button */}
       <div 
         onClick={onDelete}
-        className="absolute top-2 right-2 p-1.5 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all duration-200"
+        className="absolute top-2 right-2 p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 z-10 transition-all duration-200"
         title="Delete chat"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

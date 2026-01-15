@@ -44,6 +44,15 @@ class DocumentPipeline:
         
         self._ensure_collection()
     
+    def check_health(self):
+        """Check connectivity to Qdrant"""
+        try:
+            self.qdrant_client.get_collections()
+            return True
+        except Exception as e:
+            logger.error(f"Qdrant health check failed: {e}")
+            raise Exception(f"Vector DB Connection Failed: {str(e)}")
+
     def _ensure_collection(self):
         try:
             collections = self.qdrant_client.get_collections()
